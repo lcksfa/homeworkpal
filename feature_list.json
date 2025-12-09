@@ -1,0 +1,502 @@
+{
+  "project": "Homework Pal RAG System",
+  "description": "AI-powered homework assistant for 3rd grade students using PEP textbooks",
+  "version": "1.0.0",
+  "last_updated": "2025-12-09T00:00:00Z",
+  "features": [
+    {
+      "id": "HomeworkPal-D001",
+      "category": "document_processing",
+      "description": "PDF textbook document upload and parsing for 人教版 PEP textbooks",
+      "steps": [
+        "User uploads PDF file through Chainlit interface",
+        "System validates PDF format and extracts text content using unstructured",
+        "Content is segmented by unit-lesson-knowledge point hierarchy",
+        "Metadata (subject, grade, unit, page) is extracted and stored",
+        "Processing progress is shown in Chainlit step interface"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-D002",
+      "category": "document_processing",
+      "description": "TXT and MD document processing for supplementary materials",
+      "steps": [
+        "User uploads TXT or MD file through interface",
+        "System parses text content and structure",
+        "Content is processed and segmented appropriately",
+        "Document metadata is extracted and indexed",
+        "Processing status is updated in real-time"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-D003",
+      "category": "document_processing",
+      "description": "Document segmentation strategy optimization for textbook content",
+      "steps": [
+        "System analyzes document structure and content type",
+        "Optimal segmentation strategy is applied based on content",
+        "Knowledge points are segmented by semantic boundaries",
+        "Cross-reference links between segments are maintained",
+        "Segmentation quality is validated through testing"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-D004",
+      "category": "document_processing",
+      "description": "Document vectorization using BGE-M3 embedding model",
+      "steps": [
+        "Processed document segments are passed to embedding model",
+        "BGE-M3 generates high-quality vector embeddings",
+        "Embeddings are stored in PostgreSQL with pgvector",
+        "Vector indexing is optimized for fast retrieval",
+        "Embedding quality is validated through similarity tests"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-D005",
+      "category": "document_processing",
+      "description": "Document metadata extraction and indexing system",
+      "steps": [
+        "System extracts structured metadata from documents",
+        "Metadata includes subject, grade, unit, page, difficulty",
+        "Extracted metadata is stored in JSONB format",
+        "Indexing is optimized for metadata-based queries",
+        "Metadata accuracy is validated against source documents"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-R001",
+      "category": "retrieval",
+      "description": "Basic semantic similarity search for textbook knowledge",
+      "steps": [
+        "User query is processed and embedded using same model",
+        "System performs vector similarity search in knowledge base",
+        "Most similar textbook content is retrieved and ranked",
+        "Search results include similarity scores and metadata",
+        "Retrieved content is formatted for LLM consumption"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-R002",
+      "category": "retrieval",
+      "description": "Hybrid search combining semantic and keyword matching",
+      "steps": [
+        "User query is processed for both semantic and keyword search",
+        "BM25 keyword search is performed on document content",
+        "Vector similarity search is performed in parallel",
+        "Results from both methods are combined and re-ranked",
+        "Final results balance relevance and exact matches"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-R003",
+      "category": "retrieval",
+      "description": "Search result ranking and filtering for grade-appropriate content",
+      "steps": [
+        "Initial search results are collected from multiple sources",
+        "Results are filtered by grade level and subject relevance",
+        "Advanced ranking algorithm considers multiple factors",
+        "Results are deduplicated and organized by relevance",
+        "Top results are selected for LLM context"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-R004",
+      "category": "retrieval",
+      "description": "Query expansion and optimization for better retrieval",
+      "steps": [
+        "Original user query is analyzed for key concepts",
+        "Related terms and synonyms are generated using thesaurus",
+        "Query is expanded with educational context and grade level",
+        "Multiple query variants are executed in parallel",
+        "Best results are selected based on coverage and relevance"
+      ],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-R005",
+      "category": "retrieval",
+      "description": "Multi-round dialogue context retrieval for continuous learning",
+      "steps": [
+        "Conversation history is analyzed for context",
+        "Previous queries and responses are considered",
+        "Contextual information is used to refine current search",
+        "Search results are tailored to conversation progression",
+        "Learning trajectory is maintained across sessions"
+      ],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-G001",
+      "category": "generation",
+      "description": "Answer generation based on retrieved textbook content",
+      "steps": [
+        "Retrieved textbook content is formatted as context",
+        "User query and context are passed to LLM (Qwen/DeepSeek)",
+        "LLM generates age-appropriate and educational responses",
+        "Response includes textbook references and page numbers",
+        "Answer quality is validated for accuracy and appropriateness"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-G002",
+      "category": "generation",
+      "description": "Intelligent context length management for optimal responses",
+      "steps": [
+        "Available context window is calculated based on model limits",
+        "Retrieved content is prioritized and truncated if necessary",
+        "Most relevant content is preserved for LLM input",
+        "Context optimization maintains answer quality",
+        "System handles edge cases with limited context"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-G003",
+      "category": "generation",
+      "description": "Answer quality and relevance validation system",
+      "steps": [
+        "Generated answers are analyzed for accuracy",
+        "Answers are checked against textbook source material",
+        "Age-appropriateness and educational value are validated",
+        "Answers are screened for harmful or inappropriate content",
+        "Quality scores are calculated and used for improvement"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-G004",
+      "category": "generation",
+      "description": "Accurate source citation and textbook reference system",
+      "steps": [
+        "Source material is tracked throughout the generation process",
+        "Textbook references include book, unit, and page numbers",
+        "Citations are formatted clearly for students and parents",
+        "Multiple sources are combined and credited appropriately",
+        "Reference accuracy is validated against source documents"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-G005",
+      "category": "generation",
+      "description": "Multi-language answer support for diverse user needs",
+      "steps": [
+        "User language preference is detected and stored",
+        "Queries are processed in the user's preferred language",
+        "Textbook content is retrieved regardless of original language",
+        "Answers are generated in the user's preferred language",
+        "Language quality and accuracy are validated"
+      ],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-V001",
+      "category": "vision",
+      "description": "Visual homework grading using Vision Language Models",
+      "steps": [
+        "User uploads homework photos through Chainlit interface",
+        "VLM processes images to identify handwritten content",
+        "Answers are extracted and analyzed for correctness",
+        "Step-by-step progress is shown in Chainlit steps",
+        "Grading results are formatted for student-friendly feedback"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-V002",
+      "category": "vision",
+      "description": "Handwriting recognition and content extraction from images",
+      "steps": [
+        "Upload images are preprocessed for optimal OCR",
+        "Handwriting recognition identifies numbers and text",
+        "Mathematical expressions are parsed and understood",
+        "Content extraction handles multiple image formats",
+        "Extraction accuracy is validated and corrected"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-V003",
+      "category": "vision",
+      "description": "Educational feedback generation without giving direct answers",
+      "steps": [
+        "Incorrect answers are identified and analyzed",
+        "Common misconceptions are recognized and addressed",
+        "Guiding questions are generated to prompt thinking",
+        "Textbook references are provided for review",
+        "Encouraging feedback maintains student motivation"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-M001",
+      "category": "mistake_notebook",
+      "description": "Automatic mistake recording and categorization system",
+      "steps": [
+        "Incorrect answers are automatically detected during grading",
+        "Mistake details are extracted and stored in database",
+        "Mistakes are categorized by subject and topic",
+        "Textbook references are linked for each mistake",
+        "Mistake records are indexed for easy retrieval"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-M002",
+      "category": "mistake_notebook",
+      "description": "Interactive mistake notebook interface with card-based display",
+      "steps": [
+        "User accesses mistake notebook through Chainlit interface",
+        "Recent mistakes are displayed as interactive cards",
+        "Each card shows mistake image, topic, and textbook reference",
+        "Users can mark mistakes as mastered with rewards",
+        "Navigation allows browsing by subject and date"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-M003",
+      "category": "mistake_notebook",
+      "description": "Progress tracking and mastery recognition with rewards",
+      "steps": [
+        "User marks mistakes as mastered after review",
+        "Mastery status is updated in database",
+        "Progress statistics are calculated and displayed",
+        "Achievement rewards and celebrations are shown",
+        "Learning progress is tracked over time"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-M004",
+      "category": "mistake_notebook",
+      "description": "Printable mistake report generation for parents",
+      "steps": [
+        "Weekly mistake summary is compiled from database",
+        "Mistakes are organized by subject and frequency",
+        "Professional PDF report is generated with layout",
+        "Textbook references and study tips are included",
+        "Download link is provided for easy access"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-P001",
+      "category": "planner",
+      "description": "Homework list creation from various input formats",
+      "steps": [
+        "User provides homework details via text, voice, or image",
+        "System parses and structures homework information",
+        "Homework items are organized by subject and priority",
+        "Interactive checklist is generated in Chainlit",
+        "Progress tracking is initialized for each item"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-P002",
+      "category": "planner",
+      "description": "Real-time progress tracking with visual indicators",
+      "steps": [
+        "User marks homework items as completed",
+        "Progress bar and statistics update in real-time",
+        "Completion status is synchronized across devices",
+        "Achievement badges are awarded for milestones",
+        "Progress history is maintained for analysis"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-U001",
+      "category": "ui",
+      "description": "Document management interface for textbook content",
+      "steps": [
+        "User accesses document management through Chainlit",
+        "Uploaded documents are displayed with metadata",
+        "Document processing status is shown with progress bars",
+        "Users can view, edit, or delete uploaded documents",
+        "Search and filter options help find specific content"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-U002",
+      "category": "ui",
+      "description": "Query input interface with conversation history",
+      "steps": [
+        "User types or speaks queries through Chainlit interface",
+        "Conversation history is displayed with timestamps",
+        "Previous queries can be reviewed and reused",
+        "Input suggestions are provided based on context",
+        "Interface adapts to user preferences and habits"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-U003",
+      "category": "ui",
+      "description": "Search results display with relevance indicators",
+      "steps": [
+        "Search results are displayed with relevance scores",
+        "Textbook references and page numbers are highlighted",
+        "Content previews help users assess relevance",
+        "Results can be expanded or bookmarked for later",
+        "Filter options refine results by subject and grade"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-U004",
+      "category": "ui",
+      "description": "Generated answer display with source citations",
+      "steps": [
+        "Generated answers are displayed in student-friendly format",
+        "Textbook sources are cited with page numbers",
+        "Related concepts and examples are suggested",
+        "Answers can be rated for quality and helpfulness",
+        "Follow-up questions are suggested for deeper learning"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-U005",
+      "category": "ui",
+      "description": "User settings and configuration interface",
+      "steps": [
+        "User accesses settings through Chainlit interface",
+        "Grade level and subject preferences are configured",
+        "Learning goals and difficulty levels are set",
+        "Notification and reminder preferences are adjusted",
+        "Settings are saved and applied across sessions"
+      ],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-S001",
+      "category": "performance",
+      "description": "System performance monitoring and optimization",
+      "steps": [
+        "Response times are tracked for all operations",
+        "Resource usage is monitored and optimized",
+        "Bottlenecks are identified and addressed",
+        "Performance metrics are logged and analyzed",
+        "System scalability is tested and validated"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-S002",
+      "category": "performance",
+      "description": "Document processing performance optimization",
+      "steps": [
+        "Document processing pipeline is optimized for speed",
+        "Parallel processing is used for large documents",
+        "Caching strategies reduce redundant processing",
+        "Batch processing improves throughput",
+        "Processing time is minimized without quality loss"
+      ],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-S003",
+      "category": "performance",
+      "description": "Search response time optimization for real-time interaction",
+      "steps": [
+        "Vector search indexes are optimized for speed",
+        "Query caching reduces redundant searches",
+        "Result ranking is accelerated with pre-computation",
+        "Database queries are optimized for performance",
+        "Response times meet interactive requirements"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-S004",
+      "category": "performance",
+      "description": "Answer generation quality assessment and improvement",
+      "steps": [
+        "Answer quality metrics are defined and measured",
+        "A/B testing compares different generation strategies",
+        "User feedback is collected and analyzed",
+        "Model parameters are optimized based on performance",
+        "Quality improvement is continuous and data-driven"
+      ],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "HomeworkPal-S005",
+      "category": "performance",
+      "description": "User behavior analysis for feature improvement",
+      "steps": [
+        "User interactions are tracked and analyzed",
+        "Usage patterns identify popular and unused features",
+        "User feedback guides feature prioritization",
+        "A/B testing validates interface improvements",
+        "User experience metrics drive continuous improvement"
+      ],
+      "priority": 3,
+      "passes": false
+    }
+  ],
+  "metadata": {
+    "total_features": 35,
+    "categories": {
+      "document_processing": 5,
+      "retrieval": 5,
+      "generation": 5,
+      "vision": 3,
+      "mistake_notebook": 4,
+      "planner": 2,
+      "ui": 5,
+      "performance": 5
+    },
+    "priority_distribution": {
+      "priority_1": 14,
+      "priority_2": 15,
+      "priority_3": 6
+    }
+  }
+}
