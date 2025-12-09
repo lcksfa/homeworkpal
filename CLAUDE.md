@@ -70,7 +70,10 @@ ruff check src/
 
 ### Database Operations
 ```bash
-# Connect to PostgreSQL database
+# Connect to PostgreSQL database (container psql)
+docker exec -it homework-pal-postgres psql -U homeworkpal -d homeworkpal
+
+# Alternative: Use external psql client if installed
 psql -h localhost -U homeworkpal -d homeworkpal
 
 # Check database health

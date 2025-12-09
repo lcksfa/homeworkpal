@@ -33,10 +33,39 @@ AI-powered homework assistant for 3rd grade students using 人教版 (PEP) textb
 git clone <repository-url>
 cd homeworkpal
 
-# 一键初始化环境 (推荐)
+# 1. 创建环境配置文件
+cp .env.template .env
+
+# 2. 编辑配置文件，填入你的API密钥
+# 必需: DASHSCOPE_API_KEY 或 DEEPSEEK_API_KEY
+nano .env  # 或使用你喜欢的编辑器
+
+# 3. 一键初始化环境 (推荐)
 ./init.sh
 
-# 手动安装/开发
+# 4. 访问应用程序
+# 前端界面: http://localhost:8000
+# 后端API: http://localhost:8001
+# API文档: http://localhost:8001/docs
+```
+
+### 环境配置
+
+详细的配置指南请参考 [docs/环境配置指南.md](docs/环境配置指南.md)
+
+**必需配置项**:
+```bash
+# 至少配置一个AI模型API密钥
+DASHSCOPE_API_KEY=your_dashscope_api_key_here  # 阿里云通义千问
+DEEPSEEK_API_KEY=your_deepseek_api_key_here    # DeepSeek模型
+
+# 数据库连接（init.sh会自动配置PostgreSQL容器）
+DATABASE_URL=postgresql://homeworkpal:password@localhost:5432/homeworkpal
+```
+
+**手动安装/开发**:
+```bash
+# 创建虚拟环境
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 uv sync
@@ -272,7 +301,10 @@ tail -f frontend.log
 # 查看初始化日志
 tail -f init.log
 
-# 连接数据库查看
+# 连接数据库查看（使用容器内部psql）
+docker exec -it homework-pal-postgres psql -U homeworkpal -d homeworkpal
+
+# 或者使用外部psql（如果已安装psql客户端）
 psql -h localhost -U homeworkpal -d homeworkpal
 
 # 检查向量索引状态
