@@ -15,9 +15,9 @@ load_dotenv()
 # 数据库配置
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://homeworkpal:password@localhost:5432/homeworkpal")
 
-# 确保使用正确的PostgreSQL驱动
-# if DATABASE_URL.startswith("postgresql://"):
-#     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://")
+# 确保使用正确的PostgreSQL驱动 (使用现代的 psycopg 3)
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://")
 
 # 创建数据库引擎
 engine = create_engine(

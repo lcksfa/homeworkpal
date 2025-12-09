@@ -10,7 +10,7 @@ dependencies = [
     "fastapi>=0.104.1",
     "uvicorn[standard]>=0.24.0",
     # Database and vector storage
-    "psycopg2-binary>=2.9.8",
+    "psycopg>=3.1.0",
     "pgvector>=0.2.4",
     "sqlalchemy>=2.0.23",
     "alembic>=1.12.1",

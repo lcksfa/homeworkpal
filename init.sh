@@ -305,28 +305,61 @@ start_backend() {
     info "Starting backend services..."
     source .venv/bin/activate
 
-    # Start FastAPI backend in background
+    # Try to start full backend first, fallback to simple version
     info "Starting FastAPI backend..."
-    uvicorn main:app --host 0.0.0.0 --port 8001 --reload > logs/backend.log 2>&1 &
-    BACKEND_PID=$!
-    echo $BACKEND_PID > .backend.pid
-
-    success "Backend service started (PID: $BACKEND_PID)"
+    if uv run python -c "
+import sys
+sys.path.insert(0, '.')
+try:
+    # Test modern psycopg 3 import
+    import psycopg
+    print('psycopg version:', psycopg.__version__)
+    from homeworkpal.api.main import app
+    print('SUCCESS: Full backend available')
+    sys.exit(0)
+except Exception as e:
+    print(f'ERROR: Full backend failed: {e}')
+    sys.exit(1)
+" 2>/dev/null; then
+        # Full backend is available, start it
+        uv run uvicorn homeworkpal.api.main:app --host 0.0.0.0 --port 8001 --reload > logs/backend.log 2>&1 &
+        BACKEND_PID=$!
+        echo $BACKEND_PID > .backend.pid
+        success "Full backend service started (PID: $BACKEND_PID)"
+    else
+        # Fallback to simple backend
+        warning "Full backend not available (database connection issue), using simple backend..."
+        info "To fix database issues:"
+        info "  1. Ensure PostgreSQL is running: docker start homework-pal-postgres"
+        info "  2. Check DATABASE_URL in .env file"
+        info "  3. Reinstall dependencies: uv sync --dev"
+        uv run uvicorn homeworkpal.simple.api:app --host 0.0.0.0 --port 8001 --reload > logs/backend.log 2>&1 &
+        BACKEND_PID=$!
+        echo $BACKEND_PID > .backend.pid
+        success "Simple backend service started (PID: $BACKEND_PID)"
+    fi
 }
 
 # Start frontend services
 start_frontend() {
     if [[ "$SKIP_FRONTEND" == false ]]; then
         info "Starting Chainlit frontend..."
-        source .venv/bin/activate
 
-        # Start Chainlit frontend in background
-        info "Starting Chainlit frontend..."
-        chainlit run app.py --host 0.0.0.0 --port 8000 > logs/frontend.log 2>&1 &
-        FRONTEND_PID=$!
-        echo $FRONTEND_PID > .frontend.pid
-
-        success "Frontend service started (PID: $FRONTEND_PID)"
+        # Try to start full frontend first, fallback to simple version
+        if [[ -f "homeworkpal/frontend/app.py" ]]; then
+            # Full frontend is available, start it
+            uv run chainlit run homeworkpal/frontend/app.py --host 0.0.0.0 --port 8000 > logs/frontend.log 2>&1 &
+            FRONTEND_PID=$!
+            echo $FRONTEND_PID > .frontend.pid
+            success "Full frontend service started (PID: $FRONTEND_PID)"
+        else
+            # Fallback to simple frontend
+            info "Full frontend not available, using simple frontend..."
+            uv run chainlit run homeworkpal/simple/app.py --host 0.0.0.0 --port 8000 > logs/frontend.log 2>&1 &
+            FRONTEND_PID=$!
+            echo $FRONTEND_PID > .frontend.pid
+            success "Simple frontend service started (PID: $FRONTEND_PID)"
+        fi
     else
         info "Skipping frontend startup (--no-frontend flag)"
     fi
@@ -336,49 +369,78 @@ start_frontend() {
 health_check() {
     info "Performing health checks..."
 
-    # Check backend health
+    # Check backend health with more patience
     info "Checking backend health..."
+    backend_ok=false
     for i in $(seq 1 $HEALTH_CHECK_TIMEOUT); do
         if curl -f http://localhost:8001/health > /dev/null 2>&1; then
             success "Backend health check passed"
+            backend_ok=true
             break
-        elif [[ $i -eq $HEALTH_CHECK_TIMEOUT ]]; then
-            error "Backend health check failed after $HEALTH_CHECK_TIMEOUT seconds"
         else
+            # Check if process is still running
+            if [[ -f ".backend.pid" ]]; then
+                BACKEND_PID=$(cat .backend.pid)
+                if ! kill -0 $BACKEND_PID 2>/dev/null; then
+                    warning "Backend process is no longer running"
+                    break
+                fi
+            fi
             sleep 1
         fi
     done
 
+    if [[ "$backend_ok" == false ]]; then
+        warning "Backend health check failed after $HEALTH_CHECK_TIMEOUT seconds"
+        warning "Check logs: tail -f logs/backend.log"
+    fi
+
     # Check frontend health if running
     if [[ "$SKIP_FRONTEND" == false ]]; then
         info "Checking frontend health..."
+        frontend_ok=false
         for i in $(seq 1 $HEALTH_CHECK_TIMEOUT); do
             if curl -f http://localhost:8000 > /dev/null 2>&1; then
                 success "Frontend health check passed"
+                frontend_ok=true
                 break
-            elif [[ $i -eq $HEALTH_CHECK_TIMEOUT ]]; then
-                error "Frontend health check failed after $HEALTH_CHECK_TIMEOUT seconds"
             else
+                # Check if process is still running
+                if [[ -f ".frontend.pid" ]]; then
+                    FRONTEND_PID=$(cat .frontend.pid)
+                    if ! kill -0 $FRONTEND_PID 2>/dev/null; then
+                        warning "Frontend process is no longer running"
+                        break
+                    fi
+                fi
                 sleep 1
             fi
         done
+
+        if [[ "$frontend_ok" == false ]]; then
+            warning "Frontend health check failed after $HEALTH_CHECK_TIMEOUT seconds"
+            warning "Check logs: tail -f logs/frontend.log"
+        fi
     fi
 }
 
 # Run smoke tests
 run_smoke_tests() {
     info "Running smoke tests..."
-    source .venv/bin/activate
 
-    # Test database connection
-    python - << EOF
-import asyncio
+    # Test database connection using uv run
+    uv run python - << EOF
 import sys
 from sqlalchemy import create_engine, text
 
-async def test_db():
+def test_db():
     try:
-        engine = create_engine("$DATABASE_URL")
+        # Convert DATABASE_URL to use psycopg driver
+        database_url = "$DATABASE_URL"
+        if database_url.startswith("postgresql://"):
+            database_url = database_url.replace("postgresql://", "postgresql+psycopg://")
+
+        engine = create_engine(database_url)
         with engine.connect() as conn:
             # Test basic connection
             result = conn.execute(text("SELECT 1"))
@@ -419,7 +481,7 @@ async def test_db():
         return False
 
 if __name__ == "__main__":
-    success = asyncio.run(test_db())
+    success = test_db()
     sys.exit(0 if success else 1)
 EOF
 
@@ -434,8 +496,8 @@ EOF
 create_directories() {
     info "Creating necessary directories..."
 
-    mkdir -p uploads
-    mkdir -p vector_index
+    # mkdir -p uploads
+    # mkdir -p vector_index
     mkdir -p logs
     mkdir -p data/textbooks
     mkdir -p tests
@@ -443,221 +505,24 @@ create_directories() {
     success "Directories created"
 }
 
-# Generate basic application structure
-generate_app_structure() {
-    info "Generating basic application structure..."
+# Verify application structure
+verify_app_structure() {
+    info "Verifying application structure..."
 
-    # Create main application file
-    if [[ ! -f "app.py" ]]; then
-        cat > app.py << 'EOF'
-#!/usr/bin/env python3
-"""
-Homework Pal Chainlit Application
-AI-powered homework assistant for 3rd grade students
-"""
-
-import chainlit as cl
-from typing import Optional
-import asyncio
-import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-@cl.on_chat_start
-async def on_chat_start():
-    """Initialize chat session"""
-    # Send welcome message
-    welcome_message = """
-👋 嗨！我是你的作业搭子小栗子！🌰
-今天我们也要一起消灭作业怪兽哦！
-
-👇 你可以：
-📸 检查作业 - 上传作业照片，我来帮你检查
-📅 整理清单 - 告诉我今天的作业内容
-📕 复习错题 - 查看你的错题本
-"""
-
-    await cl.Message(
-        content=welcome_message,
-        author="小栗子"
-    ).send()
-
-    # Add action buttons
-    actions = [
-        cl.Action(name="check_homework", value="check", label="📸 检查作业"),
-        cl.Action(name="create_planner", value="planner", label="📅 整理清单"),
-        cl.Action(name="view_mistakes", value="mistakes", label="📕 复习错题"),
-    ]
-
-    await cl.Message(
-        content="选择一个功能开始吧：",
-        actions=actions
-    ).send()
-
-@cl.action_callback("check_homework")
-async def on_check_homework(action: cl.Action):
-    """Handle homework checking action"""
-    await cl.Message(
-        content="📸 请上传你的作业照片，我来帮你检查！",
-        author="小栗子"
-    ).send()
-
-    # Request file upload
-    files = await cl.AskFileMessage(
-        content="请选择要检查的作业照片：",
-        accept=["image/jpeg", "image/png", "image/webp"],
-        max_size_mb=10,
-        max_files=5
-    ).send()
-
-    if files:
-        await cl.Message(
-            content=f"收到了 {len(files)} 张照片，正在检查中...请稍等 ⏳",
-            author="小栗子"
-        ).send()
-
-        # Here we would implement the actual homework checking logic
-        await process_homework_images(files)
-
-@cl.action_callback("create_planner")
-async def on_create_planner(action: cl.Action):
-    """Handle planner creation action"""
-    await cl.Message(
-        content="📅 请告诉我今天的作业内容，我来帮你整理成清单！",
-        author="小栗子"
-    ).send()
-
-@cl.action_callback("view_mistakes")
-async def on_view_mistakes(action: cl.Action):
-    """Handle mistake viewing action"""
-    await cl.Message(
-        content="📕 正在查看你的错题本...让我想想你最近遇到了哪些难题 🤔",
-        author="小栗子"
-    ).send()
-
-    # Here we would implement the mistake viewing logic
-    await display_mistake_notebook()
-
-async def process_homework_images(files):
-    """Process uploaded homework images"""
-    # This would be implemented with VLM and RAG logic
-    await cl.Message(
-        content="🔍 正在分析你的作业...这个功能正在开发中，敬请期待！",
-        author="小栗子"
-    ).send()
-
-async def display_mistake_notebook():
-    """Display mistake notebook"""
-    # This would be implemented with database queries
-    await cl.Message(
-        content="📚 错题本功能正在开发中，敬请期待！",
-        author="小栗子"
-    ).send()
-
-@cl.on_message
-async def on_message(message: cl.Message):
-    """Handle chat messages"""
-    user_input = message.content
-
-    # Simple response logic for now
-    if "你好" in user_input or "hi" in user_input.lower():
-        response = "你好呀！我是小栗子，有什么可以帮你的吗？🌰"
-    elif "帮助" in user_input or "help" in user_input.lower():
-        response = """我可以帮你：
-📸 检查作业 - 上传照片我来检查
-📅 整理清单 - 告诉我作业内容
-📕 复习错题 - 查看错题本
-还有什么问题吗？"""
-    else:
-        response = f"我收到了你的消息：「{user_input}」这个功能正在开发中，敬请期待！"
-
-    await cl.Message(
-        content=response,
-        author="小栗子"
-    ).send()
-
-if __name__ == "__main__":
-    print("Starting Homework Pal Chainlit Application...")
-EOF
+    # Check if homeworkpal package structure exists
+    if [[ -d "homeworkpal" ]]; then
+        success "homeworkpal package structure found"
+        echo "  Main files:"
+        echo "    - Backend: homeworkpal/api/main.py"
+        echo "    - Frontend: homeworkpal/frontend/app.py"
+        echo "    - Simple API: homeworkpal/simple/api.py"
+        echo "    - Simple App: homeworkpal/simple/app.py"
+    else
+        error "homeworkpal package directory not found"
+        return 1
     fi
 
-    # Create main.py for FastAPI backend
-    if [[ ! -f "main.py" ]]; then
-        cat > main.py << 'EOF'
-"""
-Homework Pal FastAPI Backend
-Provides API endpoints for the frontend application
-"""
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import uvicorn
-import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-app = FastAPI(
-    title="Homework Pal API",
-    description="AI-powered homework assistant backend",
-    version="1.0.0"
-)
-
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-class HealthResponse(BaseModel):
-    status: str
-    message: str
-
-@app.get("/")
-async def root():
-    """Root endpoint"""
-    return {"message": "Homework Pal API is running"}
-
-@app.get("/health")
-async def health_check() -> HealthResponse:
-    """Health check endpoint"""
-    return HealthResponse(
-        status="healthy",
-        message="Homework Pal API is running properly"
-    )
-
-@app.get("/api/v1/status")
-async def get_status():
-    """Get API status"""
-    return {
-        "status": "operational",
-        "version": "1.0.0",
-        "features": {
-            "rag": False,
-            "vision": False,
-            "mistake_notebook": False,
-            "planner": False
-        }
-    }
-
-if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8001,
-        reload=os.getenv("RELOAD", "false").lower() == "true"
-    )
-EOF
-    fi
-
-    success "Application structure generated"
+    success "Application structure verified"
 }
 
 # Main execution function
@@ -679,8 +544,8 @@ main() {
     # Setup Python environment
     setup_python_env
 
-    # Generate application structure
-    generate_app_structure
+    # Verify application structure
+    verify_app_structure
 
     # Note: Database schema initialization will be handled by the application code
     # Reset vector database if requested (only data removal, not schema)
