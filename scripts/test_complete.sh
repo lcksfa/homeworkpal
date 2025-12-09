@@ -85,7 +85,7 @@ start_services() {
 
     # Start backend
     info "Starting backend..."
-    python -m homeworkpal.simple.api > backend_test.log 2>&1 &
+    python -m homeworkpal.simple.api > logs/backend_test.log 2>&1 &
     BACKEND_PID=$!
     info "Backend started (PID: $BACKEND_PID)"
 
@@ -104,7 +104,7 @@ start_services() {
 
     # Start frontend
     info "Starting frontend..."
-    chainlit run homeworkpal.simple.app --host 0.0.0.0 --port 8000 > frontend_test.log 2>&1 &
+    chainlit run homeworkpal.simple.app --host 0.0.0.0 --port 8000 > logs/frontend_test.log 2>&1 &
     FRONTEND_PID=$!
     info "Frontend started (PID: $FRONTEND_PID)"
 
@@ -185,8 +185,8 @@ run_tests() {
     echo "3. Click the action buttons to test the interface"
     echo ""
     echo "📝 Logs are available in:"
-    echo "- Backend: backend_test.log"
-    echo "- Frontend: frontend_test.log"
+    echo "- Backend: logs/backend_test.log"
+    echo "- Frontend: logs/frontend_test.log"
 }
 
 # Main execution

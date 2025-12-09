@@ -138,8 +138,9 @@ homeworkpal/
    - 直接测试各个端点
 
 3. **查看日志**
-   - 后端日志：`backend.log`
-   - 前端日志：`frontend.log`
+   - 后端日志：`logs/backend.log`
+   - 前端日志：`logs/frontend.log`
+   - 简化版日志：`logs/simple.log`
 
 ## 🛠 故障排除
 

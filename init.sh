@@ -17,7 +17,7 @@ SKIP_FRONTEND=false
 RESET_VECTORDB=false
 ENV_FILE=".env"
 LOAD_DOCS_PATH=""
-LOG_FILE="init.log"
+LOG_FILE="logs/init.log"
 HEALTH_CHECK_TIMEOUT=60
 
 # Logging function
@@ -211,7 +211,7 @@ VECTOR_INDEX_DIR=./vector_index
 
 # Logging
 LOG_LEVEL=INFO
-LOG_FILE=./app.log
+LOG_FILE=./logs/app.log
 
 # Development Settings
 DEBUG=true
@@ -307,7 +307,7 @@ start_backend() {
 
     # Start FastAPI backend in background
     info "Starting FastAPI backend..."
-    uvicorn main:app --host 0.0.0.0 --port 8001 --reload > backend.log 2>&1 &
+    uvicorn main:app --host 0.0.0.0 --port 8001 --reload > logs/backend.log 2>&1 &
     BACKEND_PID=$!
     echo $BACKEND_PID > .backend.pid
 
@@ -322,7 +322,7 @@ start_frontend() {
 
         # Start Chainlit frontend in background
         info "Starting Chainlit frontend..."
-        chainlit run app.py --host 0.0.0.0 --port 8000 > frontend.log 2>&1 &
+        chainlit run app.py --host 0.0.0.0 --port 8000 > logs/frontend.log 2>&1 &
         FRONTEND_PID=$!
         echo $FRONTEND_PID > .frontend.pid
 
@@ -716,8 +716,8 @@ main() {
     echo "  docker start homework-pal-postgres"
     echo ""
     echo "To view logs:"
-    echo "  tail -f backend.log"
-    echo "  tail -f frontend.log"
+    echo "  tail -f logs/backend.log"
+    echo "  tail -f logs/frontend.log"
     echo "  docker logs -f homework-pal-postgres"
 }
 

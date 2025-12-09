@@ -9,8 +9,13 @@ from typing import Optional
 import os
 from dotenv import load_dotenv
 
+from homeworkpal.utils.logger import get_simple_logger
+
 # Load environment variables
 load_dotenv()
+
+# Initialize logger
+logger = get_simple_logger()
 
 @cl.on_chat_start
 async def on_chat_start():

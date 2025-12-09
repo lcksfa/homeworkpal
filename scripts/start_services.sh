@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 
 # Default values
 SKIP_FRONTEND=false
-LOG_FILE="simple_start.log"
+LOG_FILE="logs/simple_start.log"
 
 # Logging function
 log() {
@@ -106,7 +106,7 @@ start_backend() {
     info "Starting FastAPI backend (simplified version)..."
 
     # Use the simplified version without database dependencies
-    uvicorn homeworkpal.simple.api:app --host 0.0.0.0 --port 8001 --reload > backend.log 2>&1 &
+    uvicorn homeworkpal.simple.api:app --host 0.0.0.0 --port 8001 --reload > logs/backend.log 2>&1 &
     BACKEND_PID=$!
     echo $BACKEND_PID > .backend.pid
 
@@ -119,7 +119,7 @@ start_frontend() {
         info "Starting Chainlit frontend (simplified version)..."
 
         # Use the simplified version without database dependencies
-        chainlit run homeworkpal.simple.app --host 0.0.0.0 --port 8000 > frontend.log 2>&1 &
+        chainlit run homeworkpal.simple.app --host 0.0.0.0 --port 8000 > logs/frontend.log 2>&1 &
         FRONTEND_PID=$!
         echo $FRONTEND_PID > .frontend.pid
 
@@ -221,8 +221,8 @@ main() {
     echo "  Press Ctrl+C or run: kill \$(cat .backend.pid 2>/dev/null) \$(cat .frontend.pid 2>/dev/null)"
     echo ""
     echo "To view logs:"
-    echo "  tail -f backend.log"
-    echo "  tail -f frontend.log"
+    echo "  tail -f logs/backend.log"
+    echo "  tail -f logs/frontend.log"
     echo ""
 
     # Keep script running

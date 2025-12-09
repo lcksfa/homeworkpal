@@ -10,6 +10,10 @@ import uvicorn
 import os
 
 from homeworkpal.core.config import settings
+from homeworkpal.utils.logger import get_simple_logger
+
+# Initialize logger
+logger = get_simple_logger()
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -17,6 +21,11 @@ app = FastAPI(
     version=settings.VERSION,
     debug=settings.DEBUG
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Log application startup."""
+    logger.info(f"Starting {settings.APP_NAME} v{settings.VERSION} on port {settings.PORT}")
 
 # Configure CORS
 app.add_middleware(
