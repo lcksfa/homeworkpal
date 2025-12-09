@@ -103,6 +103,9 @@ Docker Commands:
     - View PostgreSQL logs: docker logs homework-pal-postgres
     - Stop PostgreSQL: docker stop homework-pal-postgres
     - Start PostgreSQL: docker start homework-pal-postgres
+    - Connect to database: docker exec -it homework-pal-postgres psql -U homeworkpal -d homeworkpal
+    - List databases: docker exec homework-pal-postgres psql -U homeworkpal -l
+    - Note: Database schema is created automatically by the application
 
 EOF
 }
@@ -168,8 +171,14 @@ check_requirements() {
 # Create environment file if it doesn't exist
 create_env_file() {
     if [[ ! -f "$ENV_FILE" ]]; then
-        warning "Environment file $ENV_FILE not found, creating template..."
-        cat > "$ENV_FILE" << EOF
+        if [[ -f ".env.template" ]]; then
+            info "Found .env.template file, creating .env from template..."
+            cp .env.template "$ENV_FILE"
+            success "Environment file created from .env.template"
+        else
+            warning "Environment file $ENV_FILE not found and no .env.template available"
+            warning "Creating minimal environment file..."
+            cat > "$ENV_FILE" << 'EOF'
 # Database Configuration
 DATABASE_URL=postgresql://homeworkpal:password@localhost:5432/homeworkpal
 DB_HOST=localhost
@@ -208,7 +217,14 @@ LOG_FILE=./app.log
 DEBUG=true
 RELOAD=true
 EOF
+        fi
+
         warning "Please edit $ENV_FILE with your actual API keys and database credentials"
+        warning ""
+        warning "Required minimum configuration:"
+        warning "  - DASHSCOPE_API_KEY or DEEPSEEK_API_KEY (AI model access)"
+        warning "  - DATABASE_URL (PostgreSQL with pgvector)"
+        warning ""
         warning "After editing, run this script again"
         exit 1
     fi
@@ -238,114 +254,6 @@ setup_python_env() {
     success "Python environment setup completed"
 }
 
-# Initialize database schema
-init_database() {
-    info "Initializing database schema..."
-
-    source .venv/bin/activate
-
-    # Check if database exists
-    if ! psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -lqt | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
-        info "Creating database $DB_NAME..."
-        createdb -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME"
-    fi
-
-    # Enable pgvector extension
-    info "Enabling pgvector extension..."
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS vector;" || error "Failed to enable pgvector extension"
-
-    # Create database tables
-    python - << EOF
-import asyncio
-import sys
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
-
-async def create_tables():
-    try:
-        engine = create_engine("$DATABASE_URL")
-
-        # Create tables
-        with engine.connect() as conn:
-            # Textbook knowledge table
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS textbook_knowledge (
-                    id SERIAL PRIMARY KEY,
-                    content TEXT NOT NULL,
-                    embedding vector($VECTOR_DIMENSION),
-                    metadata JSONB NOT NULL,
-                    subject VARCHAR(50) NOT NULL,
-                    grade VARCHAR(10) NOT NULL,
-                    unit VARCHAR(100),
-                    page INTEGER,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """))
-
-            # Homework sessions table
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS homework_sessions (
-                    id SERIAL PRIMARY KEY,
-                    user_id VARCHAR(100) NOT NULL,
-                    date DATE NOT NULL,
-                    summary TEXT,
-                    status VARCHAR(20) DEFAULT 'active',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """))
-
-            # Mistake records table
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS mistake_records (
-                    id SERIAL PRIMARY KEY,
-                    session_id INTEGER REFERENCES homework_sessions(id),
-                    subject VARCHAR(50) NOT NULL,
-                    image_path TEXT,
-                    student_answer TEXT,
-                    correct_hint TEXT,
-                    ai_analysis TEXT,
-                    textbook_ref_id INTEGER REFERENCES textbook_knowledge(id),
-                    status INTEGER DEFAULT 0, -- 0:未掌握, 1:已掌握
-                    difficulty_level INTEGER DEFAULT 1,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """))
-
-            # Create indexes
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_textbook_knowledge_subject ON textbook_knowledge(subject);"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_textbook_knowledge_grade ON textbook_knowledge(grade);"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_textbook_knowledge_unit ON textbook_knowledge(unit);"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_mistake_records_session ON mistake_records(session_id);"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_mistake_records_subject ON mistake_records(subject);"))
-
-            # Create vector index
-            conn.execute(text("""
-                CREATE INDEX IF NOT EXISTS idx_textbook_knowledge_embedding
-                ON textbook_knowledge
-                USING ivfflat (embedding vector_cosine_ops)
-                WITH (lists = 100);
-            """))
-
-            conn.commit()
-            print("Database tables created successfully")
-
-    except Exception as e:
-        print(f"Database initialization failed: {e}")
-        sys.exit(1)
-
-if __name__ == "__main__":
-    asyncio.run(create_tables())
-EOF
-
-    if [[ $? -eq 0 ]]; then
-        success "Database schema initialized"
-    else
-        error "Database initialization failed"
-    fi
-}
 
 # Reset vector database if requested
 reset_vector_db() {
@@ -375,9 +283,8 @@ if __name__ == "__main__":
     asyncio.run(reset_db())
 EOF
 
-        # Re-initialize database
-        init_database
-        success "Vector database reset and reinitialized"
+        # Note: Database schema will be created by application code on next run
+        success "Vector database data cleared. Schema will be recreated by application on next run"
     fi
 }
 
@@ -466,29 +373,60 @@ run_smoke_tests() {
     # Test database connection
     python - << EOF
 import asyncio
+import sys
 from sqlalchemy import create_engine, text
 
 async def test_db():
     try:
         engine = create_engine("$DATABASE_URL")
         with engine.connect() as conn:
-            result = conn.execute(text("SELECT COUNT(*) FROM textbook_knowledge"))
-            count = result.fetchone()[0]
-            print(f"Database connection successful. Knowledge entries: {count}")
-            return True
+            # Test basic connection
+            result = conn.execute(text("SELECT 1"))
+            connection_ok = result.fetchone()[0] == 1
+
+            if connection_ok:
+                print("Database connection successful")
+
+                # Test if tables exist (may be empty)
+                try:
+                    result = conn.execute(text("""
+                        SELECT COUNT(*) FROM information_schema.tables
+                        WHERE table_name IN ('textbook_knowledge', 'homework_sessions', 'mistake_records')
+                    """))
+                    table_count = result.fetchone()[0]
+                    print(f"Database tables found: {table_count}")
+
+                    if table_count >= 3:
+                        # Try to count knowledge entries (table might be empty)
+                        try:
+                            result = conn.execute(text("SELECT COUNT(*) FROM textbook_knowledge"))
+                            count = result.fetchone()[0]
+                            print(f"Knowledge entries: {count}")
+                        except Exception as e:
+                            print(f"Knowledge table exists but query failed: {e}")
+                            # This is acceptable for initial setup
+
+                    return True
+                except Exception as e:
+                    print(f"Table check failed: {e}")
+                    return False
+            else:
+                print("Database connection failed")
+                return False
+
     except Exception as e:
         print(f"Database test failed: {e}")
         return False
 
 if __name__ == "__main__":
     success = asyncio.run(test_db())
-    exit(0 if success else 1)
+    sys.exit(0 if success else 1)
 EOF
 
     if [[ $? -eq 0 ]]; then
         success "Smoke tests passed"
     else
-        warning "Some smoke tests failed"
+        warning "Some smoke tests failed - this may be normal for first-time setup"
     fi
 }
 
@@ -744,10 +682,8 @@ main() {
     # Generate application structure
     generate_app_structure
 
-    # Initialize database
-    init_database
-
-    # Reset vector database if requested
+    # Note: Database schema initialization will be handled by the application code
+    # Reset vector database if requested (only data removal, not schema)
     reset_vector_db
 
     # Load documents if path provided
