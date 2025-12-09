@@ -86,12 +86,23 @@ Options:
     --load-docs PATH     Load and vectorize documents from PATH
     -h, --help          Show this help message
 
+Requirements:
+    - Docker and Docker Compose installed and running
+    - PostgreSQL will be started using pgvector/pgvector:pg16 Docker image
+    - Data is persisted in Docker volume 'homework-pal-postgres-data'
+
 Examples:
-    $0                    # Full initialization
+    $0                    # Full initialization with Docker PostgreSQL
     $0 --no-frontend      # Skip frontend
     $0 --reset-vectordb   # Reset vector database
     $0 --env .env.prod    # Use production environment
     $0 --load-docs ./docs # Load documents from docs directory
+
+Docker Commands:
+    - Check PostgreSQL container: docker ps | grep homework-pal-postgres
+    - View PostgreSQL logs: docker logs homework-pal-postgres
+    - Stop PostgreSQL: docker stop homework-pal-postgres
+    - Start PostgreSQL: docker start homework-pal-postgres
 
 EOF
 }
@@ -110,9 +121,45 @@ check_requirements() {
         error "Python 3 is not installed"
     fi
 
-    # Check if PostgreSQL is running
-    if ! pg_isready -q &> /dev/null; then
-        error "PostgreSQL is not running. Please start PostgreSQL service"
+    # Check if Docker is installed and running
+    if ! command -v docker &> /dev/null; then
+        error "Docker is not installed. Please install Docker first"
+    fi
+
+    if ! docker info &> /dev/null; then
+        error "Docker is not running. Please start Docker service"
+    fi
+
+    # Check if PostgreSQL Docker container is running
+    if ! docker ps --filter "name=homework-pal-postgres" --filter "status=running" | grep -q "homework-pal-postgres"; then
+        warning "PostgreSQL Docker container 'homework-pal-postgres' is not running"
+        info "Starting PostgreSQL Docker container..."
+        docker start homework-pal-postgres || {
+            info "Creating PostgreSQL Docker container..."
+            docker run -d \
+                --name homework-pal-postgres \
+                -e POSTGRES_DB=homeworkpal \
+                -e POSTGRES_USER=homeworkpal \
+                -e POSTGRES_PASSWORD=password \
+                -p 5432:5432 \
+                -v homework-pal-postgres-data:/var/lib/postgresql/data \
+                timescale/timescaledb-ha:pg16
+        }
+
+        # Wait for PostgreSQL to be ready
+        info "Waiting for PostgreSQL to be ready..."
+        for i in {1..30}; do
+            if docker exec homework-pal-postgres pg_isready -q &> /dev/null; then
+                success "PostgreSQL Docker container is ready"
+                break
+            elif [ $i -eq 30 ]; then
+                error "PostgreSQL Docker container failed to start within 30 seconds"
+            else
+                sleep 1
+            fi
+        done
+    else
+        success "PostgreSQL Docker container is already running"
     fi
 
     success "System requirements check passed"
@@ -725,13 +772,48 @@ main() {
     echo "📊 API Docs: http://localhost:8001/docs"
     echo ""
     echo "To stop services:"
-    echo "  kill \$(cat .backend.pid)"
-    echo "  kill \$(cat .frontend.pid)"
+    echo "  kill \$(cat .backend.pid) 2>/dev/null || true"
+    echo "  kill \$(cat .frontend.pid) 2>/dev/null || true"
+    echo "  docker stop homework-pal-postgres"
+    echo ""
+    echo "To restart PostgreSQL Docker container:"
+    echo "  docker start homework-pal-postgres"
     echo ""
     echo "To view logs:"
     echo "  tail -f backend.log"
     echo "  tail -f frontend.log"
+    echo "  docker logs -f homework-pal-postgres"
 }
+
+# Cleanup function to stop all services
+cleanup() {
+    info "Stopping Homework Pal services..."
+
+    # Stop backend if running
+    if [[ -f ".backend.pid" ]]; then
+        BACKEND_PID=$(cat .backend.pid)
+        if kill -0 $BACKEND_PID 2>/dev/null; then
+            kill $BACKEND_PID
+            info "Backend service stopped"
+        fi
+        rm -f .backend.pid
+    fi
+
+    # Stop frontend if running
+    if [[ -f ".frontend.pid" ]]; then
+        FRONTEND_PID=$(cat .frontend.pid)
+        if kill -0 $FRONTEND_PID 2>/dev/null; then
+            kill $FRONTEND_PID
+            info "Frontend service stopped"
+        fi
+        rm -f .frontend.pid
+    fi
+
+    info "Cleanup completed"
+}
+
+# Register cleanup function for script termination
+trap cleanup EXIT INT TERM
 
 # Execute main function with all arguments
 main "$@"
