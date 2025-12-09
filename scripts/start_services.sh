@@ -106,7 +106,7 @@ start_backend() {
     info "Starting FastAPI backend (simplified version)..."
 
     # Use the simplified version without database dependencies
-    uvicorn main_simple:app --host 0.0.0.0 --port 8001 --reload > backend.log 2>&1 &
+    uvicorn homeworkpal.simple.api:app --host 0.0.0.0 --port 8001 --reload > backend.log 2>&1 &
     BACKEND_PID=$!
     echo $BACKEND_PID > .backend.pid
 
@@ -119,7 +119,7 @@ start_frontend() {
         info "Starting Chainlit frontend (simplified version)..."
 
         # Use the simplified version without database dependencies
-        chainlit run app_simple.py --host 0.0.0.0 --port 8000 > frontend.log 2>&1 &
+        chainlit run homeworkpal.simple.app --host 0.0.0.0 --port 8000 > frontend.log 2>&1 &
         FRONTEND_PID=$!
         echo $FRONTEND_PID > .frontend.pid
 

@@ -85,7 +85,7 @@ start_services() {
 
     # Start backend
     info "Starting backend..."
-    python main_simple.py > backend_test.log 2>&1 &
+    python -m homeworkpal.simple.api > backend_test.log 2>&1 &
     BACKEND_PID=$!
     info "Backend started (PID: $BACKEND_PID)"
 
@@ -104,7 +104,7 @@ start_services() {
 
     # Start frontend
     info "Starting frontend..."
-    chainlit run app_simple.py --host 0.0.0.0 --port 8000 > frontend_test.log 2>&1 &
+    chainlit run homeworkpal.simple.app --host 0.0.0.0 --port 8000 > frontend_test.log 2>&1 &
     FRONTEND_PID=$!
     info "Frontend started (PID: $FRONTEND_PID)"
 
