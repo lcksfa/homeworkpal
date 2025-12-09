@@ -79,9 +79,11 @@ uvicorn main:app --host 0.0.0.0 --port 8001 --reload
 
 ### 服务地址
 
-- **前端界面**: http://localhost:8000
+- **前端界面 (浏览器)**: http://localhost:8000
 - **后端API**: http://localhost:8001
 - **API文档**: http://localhost:8001/docs
+
+> **💡 访问提示**：虽然服务器使用 `0.0.0.0` 启动（监听所有接口），但在浏览器中请使用 `localhost` 或 `127.0.0.1` 访问
 
 ## ⚙️ 配置说明
 
