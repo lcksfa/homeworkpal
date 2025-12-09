@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 from sqlalchemy import text
 
 # 导入数据库连接
-from src.homeworkpal.database.connection import init_database, test_connection, get_db
-from src.homeworkpal.database.models import TextbookKnowledge, HomeworkSession, MistakeRecord
+from homeworkpal.database.connection import init_database, test_connection, get_db
+from homeworkpal.database.models import TextbookKnowledge, HomeworkSession, MistakeRecord
 
 # Load environment variables
 load_dotenv()
@@ -83,7 +83,7 @@ async def database_health():
         pgvector_ok = False
 
         if connected:
-            from src.homeworkpal.database.connection import engine
+            from homeworkpal.database.connection import engine
             with engine.connect() as conn:
                 # 检查表是否存在
                 result = conn.execute(text("""

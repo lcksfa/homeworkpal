@@ -31,7 +31,7 @@ def test_imports():
 def test_database():
     """测试数据库连接"""
     try:
-        from src.homeworkpal.database.connection import test_connection, init_database
+        from homeworkpal.database.connection import test_connection, init_database
 
         # 测试基本连接
         if test_connection():
@@ -56,7 +56,7 @@ def test_database():
 def test_models():
     """测试数据模型"""
     try:
-        from src.homeworkpal.database.models import Base, TextbookKnowledge, HomeworkSession, MistakeRecord
+        from homeworkpal.database.models import Base, TextbookKnowledge, HomeworkSession, MistakeRecord
         print("✅ Database models imported successfully")
 
         # 测试模型创建
