@@ -1,502 +1,529 @@
 {
-  "project": "Homework Pal RAG System",
-  "description": "AI-powered homework assistant for 3rd grade students using PEP textbooks",
+  "project": "作业搭子 RAG 智能系统",
+  "description": "基于人教版教材的三年级学生 AI 作业助手",
   "version": "1.0.0",
   "last_updated": "2025-12-09T00:00:00Z",
   "features": [
     {
-      "id": "HomeworkPal-D001",
-      "category": "document_processing",
-      "description": "PDF textbook document upload and parsing for 人教版 PEP textbooks",
+      "id": "Task-1.1",
+      "category": "基础设施",
+      "description": "项目初始化与环境配置",
       "steps": [
-        "User uploads PDF file through Chainlit interface",
-        "System validates PDF format and extracts text content using unstructured",
-        "Content is segmented by unit-lesson-knowledge point hierarchy",
-        "Metadata (subject, grade, unit, page) is extracted and stored",
-        "Processing progress is shown in Chainlit step interface"
+        "配置 uv 依赖管理，确保 uv sync 能成功安装所有依赖",
+        "搭建带有 pgvector 插件的 PostgreSQL 16 Docker 环境",
+        "创建 .env 文件，包含 DATABASE_URL 和 DASHSCOPE_API_KEY 配置等",
+        "验证 Python 虚拟环境和基础依赖包安装"
       ],
       "priority": 1,
       "passes": false
     },
     {
-      "id": "HomeworkPal-D002",
-      "category": "document_processing",
-      "description": "TXT and MD document processing for supplementary materials",
+      "id": "Task-1.2",
+      "category": "基础设施",
+      "description": "数据库模型设计 (SQLAlchemy Models)",
       "steps": [
-        "User uploads TXT or MD file through interface",
-        "System parses text content and structure",
-        "Content is processed and segmented appropriately",
-        "Document metadata is extracted and indexed",
-        "Processing status is updated in real-time"
-      ],
-      "priority": 2,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-D003",
-      "category": "document_processing",
-      "description": "Document segmentation strategy optimization for textbook content",
-      "steps": [
-        "System analyzes document structure and content type",
-        "Optimal segmentation strategy is applied based on content",
-        "Knowledge points are segmented by semantic boundaries",
-        "Cross-reference links between segments are maintained",
-        "Segmentation quality is validated through testing"
-      ],
-      "priority": 2,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-D004",
-      "category": "document_processing",
-      "description": "Document vectorization using BGE-M3 embedding model",
-      "steps": [
-        "Processed document segments are passed to embedding model",
-        "BGE-M3 generates high-quality vector embeddings",
-        "Embeddings are stored in PostgreSQL with pgvector",
-        "Vector indexing is optimized for fast retrieval",
-        "Embedding quality is validated through similarity tests"
+        "实现 TextbookChunk ORM 模型，包含 content, embedding (Vector 1024), metadata (JSON) 字段",
+        "实现 MistakeRecord ORM 模型，包含 student_answer, ai_analysis, image_path 等字段",
+        "确保 embedding 字段正确使用 pgvector 类型",
+        "运行初始化脚本自动在 PostgreSQL 中创建这两张表"
       ],
       "priority": 1,
       "passes": false
     },
     {
-      "id": "HomeworkPal-D005",
-      "category": "document_processing",
-      "description": "Document metadata extraction and indexing system",
+      "id": "Task-2.1",
+      "category": "RAG核心服务",
+      "description": "知识库入库脚本 (Ingestion Script)",
       "steps": [
-        "System extracts structured metadata from documents",
-        "Metadata includes subject, grade, unit, page, difficulty",
-        "Extracted metadata is stored in JSONB format",
-        "Indexing is optimized for metadata-based queries",
-        "Metadata accuracy is validated against source documents"
-      ],
-      "priority": 2,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-R001",
-      "category": "retrieval",
-      "description": "Basic semantic similarity search for textbook knowledge",
-      "steps": [
-        "User query is processed and embedded using same model",
-        "System performs vector similarity search in knowledge base",
-        "Most similar textbook content is retrieved and ranked",
-        "Search results include similarity scores and metadata",
-        "Retrieved content is formatted for LLM consumption"
+        "编写脚本处理 data/textbooks/math_grade3_pep.md 等 Markdown 教材文件",
+        "使用 BAAI/bge-m3 模型通过 HuggingFaceEmbeddings 加载",
+        "使用 RecursiveCharacterTextSplitter 进行文本切片",
+        "使用 PGVector.from_documents 将向量化数据存入数据库",
+        "验证数据库 textbook_chunks 表中有数据，包含正确元数据"
       ],
       "priority": 1,
       "passes": false
     },
     {
-      "id": "HomeworkPal-R002",
-      "category": "retrieval",
-      "description": "Hybrid search combining semantic and keyword matching",
+      "id": "Task-2.2",
+      "category": "RAG核心服务",
+      "description": "检索服务封装 (RAG Service)",
       "steps": [
-        "User query is processed for both semantic and keyword search",
-        "BM25 keyword search is performed on document content",
-        "Vector similarity search is performed in parallel",
-        "Results from both methods are combined and re-ranked",
-        "Final results balance relevance and exact matches"
+        "封装 RAGService 类，提供 search(query: str, top_k=3) 语义搜索接口",
+        "实现基础向量检索，预留关键词过滤接口为混合检索做准备",
+        "编写单元测试：输入'周长怎么算'能返回包含'周长'定义的文本片段",
+        "优化检索结果排序和相似度计算"
       ],
       "priority": 1,
       "passes": false
     },
     {
-      "id": "HomeworkPal-R003",
-      "category": "retrieval",
-      "description": "Search result ranking and filtering for grade-appropriate content",
+      "id": "Task-3.1",
+      "category": "视觉推理服务",
+      "description": "视觉服务封装 (Vision Service)",
       "steps": [
-        "Initial search results are collected from multiple sources",
-        "Results are filtered by grade level and subject relevance",
-        "Advanced ranking algorithm considers multiple factors",
-        "Results are deduplicated and organized by relevance",
-        "Top results are selected for LLM context"
+        "封装阿里云 Qwen-VL 的调用逻辑到 app/services/vision.py",
+        "实现 analyze_image(image_path: str, prompt: str) 方法",
+        "处理 API 错误重试机制，确保支持本地图片路径上传",
+        "验证输入本地图片路径能获得 Qwen-VL 返回的文本描述"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "Task-3.2",
+      "category": "视觉推理服务",
+      "description": "错题本 CRUD 服务 (Mistake Service)",
+      "steps": [
+        "实现错题记录的增删改查逻辑到 app/services/mistake.py",
+        "实现 add_mistake(...) 和 get_recent_mistakes(limit=5) 方法",
+        "使用 AsyncSession 进行异步数据库操作",
+        "验证调用 add_mistake 能插入记录，get_recent_mistakes 按时间倒序返回"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "Task-4.1",
+      "category": "前端界面",
+      "description": "基础聊天框架与 Session 管理",
+      "steps": [
+        "搭建 Chainlit 主入口 app/main.py，处理用户连接",
+        "实现 @cl.on_chat_start：初始化'小栗子老师'欢迎语",
+        "在 user_session 中实例化各种 Service 对象",
+        "验证运行 chainlit run app/main.py 能打开浏览器并显示欢迎语"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "Task-4.2",
+      "category": "前端界面",
+      "description": "图片上传与处理流程 (The Pipeline)",
+      "steps": [
+        "监听图片上传 -> 调用 Vision Service -> 调用 RAG Service -> 生成回复的核心业务逻辑",
+        "使用 cl.Step 显示'正在识别...'、'正在查书...'等状态进度",
+        "设定'三年级老师'语形的 Prompt 提示词",
+        "验证上传图片后 UI 显示进度条，最终回复包含：图片识别结果 + 课本知识点引用 + 鼓励性话语"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "Task-4.3",
+      "category": "前端界面",
+      "description": "'加入错题本'交互功能",
+      "steps": [
+        "在 AI 回复下方添加 cl.Action(name='add_mistake', ...) 按钮",
+        "实现 @cl.action_callback('add_mistake') 回调函数",
+        "点击按钮后界面提示'已保存'，数据库中确实新增一条错题记录",
+        "优化错题保存的用户体验和反馈机制"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "Task-5.1",
+      "category": "错题本功能",
+      "description": "错题本列表渲染",
+      "steps": [
+        "响应 '/错题本' 指令，展示错题列表",
+        "查询 MistakeService 获取最近错题记录",
+        "使用 cl.Message 发送 Markdown 表格，或使用 cl.Elements 发送卡片流",
+        "验证输入'/错题本'能看到最近存入的错题信息（包含图片缩略图）"
       ],
       "priority": 2,
       "passes": false
     },
     {
-      "id": "HomeworkPal-R004",
-      "category": "retrieval",
-      "description": "Query expansion and optimization for better retrieval",
+      "id": "Task-5.2",
+      "category": "错题本功能",
+      "description": "错题本导出功能 (可选/进阶)",
       "steps": [
-        "Original user query is analyzed for key concepts",
-        "Related terms and synonyms are generated using thesaurus",
-        "Query is expanded with educational context and grade level",
-        "Multiple query variants are executed in parallel",
-        "Best results are selected based on coverage and relevance"
+        "生成包含所有错题内容的 Markdown 文件",
+        "使用 cl.File 发送下载链接给用户",
+        "验证点击下载链接能下载排版整齐的 .md 文件",
+        "优化导出文件的格式和内容组织"
       ],
       "priority": 3,
       "passes": false
     },
     {
-      "id": "HomeworkPal-R005",
-      "category": "retrieval",
-      "description": "Multi-round dialogue context retrieval for continuous learning",
+      "id": "RAG-D001",
+      "category": "文档处理",
+      "description": "人教版 PDF 教材文档上传与解析",
       "steps": [
-        "Conversation history is analyzed for context",
-        "Previous queries and responses are considered",
-        "Contextual information is used to refine current search",
-        "Search results are tailored to conversation progression",
-        "Learning trajectory is maintained across sessions"
+        "用户通过 Chainlit 界面上传 PDF 文件",
+        "系统验证 PDF 格式并使用 unstructured 提取文本内容",
+        "内容按单元-课时-知识点层级进行分段",
+        "提取并存储元数据（学科、年级、单元、页码）",
+        "在 Chainlit 步骤界面显示处理进度"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "RAG-D002",
+      "category": "文档处理",
+      "description": "TXT 和 MD 文档处理用于补充材料",
+      "steps": [
+        "用户通过界面上传 TXT 或 MD 文件",
+        "系统解析文本内容和结构",
+        "内容被适当处理和分段",
+        "提取文档元数据并建立索引",
+        "实时更新处理状态"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "RAG-D003",
+      "category": "文档处理",
+      "description": "教材内容的文档分段策略优化",
+      "steps": [
+        "系统分析文档结构和内容类型",
+        "基于内容应用最优分段策略",
+        "按语义边界分割知识点",
+        "维护分段间的交叉引用链接",
+        "通过测试验证分段质量"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "RAG-D004",
+      "category": "文档处理",
+      "description": "使用 BGE-M3 嵌入模型进行文档向量化",
+      "steps": [
+        "处理后的文档分段传递给嵌入模型",
+        "BGE-M3 生成高质量向量嵌入",
+        "嵌入向量存储在 PostgreSQL 的 pgvector 中",
+        "为快速检索优化向量索引",
+        "通过相似性测试验证嵌入质量"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "RAG-D005",
+      "category": "文档处理",
+      "description": "文档元数据提取和索引系统",
+      "steps": [
+        "系统从文档中提取结构化元数据",
+        "元数据包括学科、年级、单元、页码、难度",
+        "提取的元数据以 JSONB 格式存储",
+        "为基于元数据的查询优化索引",
+        "根据源文档验证元数据准确性"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "RAG-R001",
+      "category": "检索功能",
+      "description": "教材知识的基础语义相似性搜索",
+      "steps": [
+        "用户查询使用相同模型处理和嵌入",
+        "系统在知识库中执行向量相似性搜索",
+        "检索和排序最相似的教材内容",
+        "搜索结果包含相似度分数和元数据",
+        "检索的内容格式化供 LLM 使用"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "RAG-R002",
+      "category": "检索功能",
+      "description": "结合语义和关键词匹配的混合搜索",
+      "steps": [
+        "用户查询同时进行语义和关键词搜索处理",
+        "在文档内容上执行 BM25 关键词搜索",
+        "并行执行向量相似性搜索",
+        "结合两种方法的结果并重新排序",
+        "最终结果平衡相关性和精确匹配"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "RAG-R003",
+      "category": "检索功能",
+      "description": "适合年级内容的搜索结果排序和过滤",
+      "steps": [
+        "从多个来源收集初始搜索结果",
+        "按年级水平和学科相关性过滤结果",
+        "高级排序算法考虑多个因素",
+        "结果去重并按相关性组织",
+        "为 LLM 上下文选择顶部结果"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "RAG-R004",
+      "category": "检索功能",
+      "description": "查询扩展和优化以获得更好的检索效果",
+      "steps": [
+        "分析用户查询的关键概念",
+        "使用同义词词典生成相关术语和同义词",
+        "用教育背景和年级水平扩展查询",
+        "并行执行多个查询变体",
+        "基于覆盖率和相关性选择最佳结果"
       ],
       "priority": 3,
       "passes": false
     },
     {
-      "id": "HomeworkPal-G001",
-      "category": "generation",
-      "description": "Answer generation based on retrieved textbook content",
+      "id": "RAG-R005",
+      "category": "检索功能",
+      "description": "持续学习的多轮对话上下文检索",
       "steps": [
-        "Retrieved textbook content is formatted as context",
-        "User query and context are passed to LLM (Qwen/DeepSeek)",
-        "LLM generates age-appropriate and educational responses",
-        "Response includes textbook references and page numbers",
-        "Answer quality is validated for accuracy and appropriateness"
-      ],
-      "priority": 1,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-G002",
-      "category": "generation",
-      "description": "Intelligent context length management for optimal responses",
-      "steps": [
-        "Available context window is calculated based on model limits",
-        "Retrieved content is prioritized and truncated if necessary",
-        "Most relevant content is preserved for LLM input",
-        "Context optimization maintains answer quality",
-        "System handles edge cases with limited context"
-      ],
-      "priority": 2,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-G003",
-      "category": "generation",
-      "description": "Answer quality and relevance validation system",
-      "steps": [
-        "Generated answers are analyzed for accuracy",
-        "Answers are checked against textbook source material",
-        "Age-appropriateness and educational value are validated",
-        "Answers are screened for harmful or inappropriate content",
-        "Quality scores are calculated and used for improvement"
-      ],
-      "priority": 2,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-G004",
-      "category": "generation",
-      "description": "Accurate source citation and textbook reference system",
-      "steps": [
-        "Source material is tracked throughout the generation process",
-        "Textbook references include book, unit, and page numbers",
-        "Citations are formatted clearly for students and parents",
-        "Multiple sources are combined and credited appropriately",
-        "Reference accuracy is validated against source documents"
-      ],
-      "priority": 1,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-G005",
-      "category": "generation",
-      "description": "Multi-language answer support for diverse user needs",
-      "steps": [
-        "User language preference is detected and stored",
-        "Queries are processed in the user's preferred language",
-        "Textbook content is retrieved regardless of original language",
-        "Answers are generated in the user's preferred language",
-        "Language quality and accuracy are validated"
+        "分析对话历史的上下文",
+        "考虑之前的查询和回复",
+        "使用上下文信息优化当前搜索",
+        "搜索结果根据对话进展定制",
+        "跨会话维护学习轨迹"
       ],
       "priority": 3,
       "passes": false
     },
     {
-      "id": "HomeworkPal-V001",
-      "category": "vision",
-      "description": "Visual homework grading using Vision Language Models",
+      "id": "RAG-G001",
+      "category": "生成功能",
+      "description": "基于检索的教材内容回答生成",
       "steps": [
-        "User uploads homework photos through Chainlit interface",
-        "VLM processes images to identify handwritten content",
-        "Answers are extracted and analyzed for correctness",
-        "Step-by-step progress is shown in Chainlit steps",
-        "Grading results are formatted for student-friendly feedback"
+        "检索的教材内容格式化为上下文",
+        "用户查询和上下文传递给 LLM (Qwen/DeepSeek)",
+        "LLM 生成适合年龄和教育意义的回复",
+        "回复包含教材引用和页码",
+        "验证答案的准确性和适当性"
       ],
       "priority": 1,
       "passes": false
     },
     {
-      "id": "HomeworkPal-V002",
-      "category": "vision",
-      "description": "Handwriting recognition and content extraction from images",
+      "id": "RAG-G002",
+      "category": "生成功能",
+      "description": "智能上下文长度管理以获得最佳回复",
       "steps": [
-        "Upload images are preprocessed for optimal OCR",
-        "Handwriting recognition identifies numbers and text",
-        "Mathematical expressions are parsed and understood",
-        "Content extraction handles multiple image formats",
-        "Extraction accuracy is validated and corrected"
-      ],
-      "priority": 1,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-V003",
-      "category": "vision",
-      "description": "Educational feedback generation without giving direct answers",
-      "steps": [
-        "Incorrect answers are identified and analyzed",
-        "Common misconceptions are recognized and addressed",
-        "Guiding questions are generated to prompt thinking",
-        "Textbook references are provided for review",
-        "Encouraging feedback maintains student motivation"
-      ],
-      "priority": 1,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-M001",
-      "category": "mistake_notebook",
-      "description": "Automatic mistake recording and categorization system",
-      "steps": [
-        "Incorrect answers are automatically detected during grading",
-        "Mistake details are extracted and stored in database",
-        "Mistakes are categorized by subject and topic",
-        "Textbook references are linked for each mistake",
-        "Mistake records are indexed for easy retrieval"
-      ],
-      "priority": 1,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-M002",
-      "category": "mistake_notebook",
-      "description": "Interactive mistake notebook interface with card-based display",
-      "steps": [
-        "User accesses mistake notebook through Chainlit interface",
-        "Recent mistakes are displayed as interactive cards",
-        "Each card shows mistake image, topic, and textbook reference",
-        "Users can mark mistakes as mastered with rewards",
-        "Navigation allows browsing by subject and date"
-      ],
-      "priority": 1,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-M003",
-      "category": "mistake_notebook",
-      "description": "Progress tracking and mastery recognition with rewards",
-      "steps": [
-        "User marks mistakes as mastered after review",
-        "Mastery status is updated in database",
-        "Progress statistics are calculated and displayed",
-        "Achievement rewards and celebrations are shown",
-        "Learning progress is tracked over time"
+        "基于模型限制计算可用上下文窗口",
+        "检索内容被优先考虑并在必要时截断",
+        "最相关的内容保留给 LLM 输入",
+        "上下文优化维持回答质量",
+        "系统处理有限上下文的边缘情况"
       ],
       "priority": 2,
       "passes": false
     },
     {
-      "id": "HomeworkPal-M004",
-      "category": "mistake_notebook",
-      "description": "Printable mistake report generation for parents",
+      "id": "RAG-G003",
+      "category": "生成功能",
+      "description": "回答质量和相关性验证系统",
       "steps": [
-        "Weekly mistake summary is compiled from database",
-        "Mistakes are organized by subject and frequency",
-        "Professional PDF report is generated with layout",
-        "Textbook references and study tips are included",
-        "Download link is provided for easy access"
+        "分析生成答案的准确性",
+        "根据教材源材料检查答案",
+        "验证年龄适当性和教育价值",
+        "筛选有害或不当内容的答案",
+        "计算质量分数用于改进"
       ],
       "priority": 2,
       "passes": false
     },
     {
-      "id": "HomeworkPal-P001",
-      "category": "planner",
-      "description": "Homework list creation from various input formats",
+      "id": "RAG-G004",
+      "category": "生成功能",
+      "description": "准确来源引用和教材参考系统",
       "steps": [
-        "User provides homework details via text, voice, or image",
-        "System parses and structures homework information",
-        "Homework items are organized by subject and priority",
-        "Interactive checklist is generated in Chainlit",
-        "Progress tracking is initialized for each item"
-      ],
-      "priority": 2,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-P002",
-      "category": "planner",
-      "description": "Real-time progress tracking with visual indicators",
-      "steps": [
-        "User marks homework items as completed",
-        "Progress bar and statistics update in real-time",
-        "Completion status is synchronized across devices",
-        "Achievement badges are awarded for milestones",
-        "Progress history is maintained for analysis"
-      ],
-      "priority": 2,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-U001",
-      "category": "ui",
-      "description": "Document management interface for textbook content",
-      "steps": [
-        "User accesses document management through Chainlit",
-        "Uploaded documents are displayed with metadata",
-        "Document processing status is shown with progress bars",
-        "Users can view, edit, or delete uploaded documents",
-        "Search and filter options help find specific content"
-      ],
-      "priority": 2,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-U002",
-      "category": "ui",
-      "description": "Query input interface with conversation history",
-      "steps": [
-        "User types or speaks queries through Chainlit interface",
-        "Conversation history is displayed with timestamps",
-        "Previous queries can be reviewed and reused",
-        "Input suggestions are provided based on context",
-        "Interface adapts to user preferences and habits"
+        "在整个生成过程中跟踪源材料",
+        "教材引用包括书名、单元和页码",
+        "为学生和家长格式化清晰的引用",
+        "适当组合和引用多个来源",
+        "根据源文档验证引用准确性"
       ],
       "priority": 1,
       "passes": false
     },
     {
-      "id": "HomeworkPal-U003",
-      "category": "ui",
-      "description": "Search results display with relevance indicators",
+      "id": "RAG-G005",
+      "category": "生成功能",
+      "description": "多样化用户需求的多语言回答支持",
       "steps": [
-        "Search results are displayed with relevance scores",
-        "Textbook references and page numbers are highlighted",
-        "Content previews help users assess relevance",
-        "Results can be expanded or bookmarked for later",
-        "Filter options refine results by subject and grade"
-      ],
-      "priority": 2,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-U004",
-      "category": "ui",
-      "description": "Generated answer display with source citations",
-      "steps": [
-        "Generated answers are displayed in student-friendly format",
-        "Textbook sources are cited with page numbers",
-        "Related concepts and examples are suggested",
-        "Answers can be rated for quality and helpfulness",
-        "Follow-up questions are suggested for deeper learning"
-      ],
-      "priority": 1,
-      "passes": false
-    },
-    {
-      "id": "HomeworkPal-U005",
-      "category": "ui",
-      "description": "User settings and configuration interface",
-      "steps": [
-        "User accesses settings through Chainlit interface",
-        "Grade level and subject preferences are configured",
-        "Learning goals and difficulty levels are set",
-        "Notification and reminder preferences are adjusted",
-        "Settings are saved and applied across sessions"
+        "检测并存储用户语言偏好",
+        "用用户首选语言处理查询",
+        "无论原始语言如何检索教材内容",
+        "用用户首选语言生成答案",
+        "验证语言质量和准确性"
       ],
       "priority": 3,
       "passes": false
     },
     {
-      "id": "HomeworkPal-S001",
-      "category": "performance",
-      "description": "System performance monitoring and optimization",
+      "id": "RAG-U001",
+      "category": "用户界面",
+      "description": "教材内容的文档管理界面",
       "steps": [
-        "Response times are tracked for all operations",
-        "Resource usage is monitored and optimized",
-        "Bottlenecks are identified and addressed",
-        "Performance metrics are logged and analyzed",
-        "System scalability is tested and validated"
+        "用户通过 Chainlit 访问文档管理",
+        "上传的文档与元数据一起显示",
+        "文档处理状态显示进度条",
+        "用户可以查看、编辑或删除上传的文档",
+        "搜索和过滤选项帮助查找特定内容"
       ],
       "priority": 2,
       "passes": false
     },
     {
-      "id": "HomeworkPal-S002",
-      "category": "performance",
-      "description": "Document processing performance optimization",
+      "id": "RAG-U002",
+      "category": "用户界面",
+      "description": "带对话历史的查询输入界面",
       "steps": [
-        "Document processing pipeline is optimized for speed",
-        "Parallel processing is used for large documents",
-        "Caching strategies reduce redundant processing",
-        "Batch processing improves throughput",
-        "Processing time is minimized without quality loss"
+        "用户通过 Chainlit 界面输入或语音查询",
+        "对话历史显示时间戳",
+        "可以查看和重用之前的查询",
+        "基于上下文提供输入建议",
+        "界面适应用户偏好和习惯"
       ],
-      "priority": 3,
+      "priority": 1,
       "passes": false
     },
     {
-      "id": "HomeworkPal-S003",
-      "category": "performance",
-      "description": "Search response time optimization for real-time interaction",
+      "id": "RAG-U003",
+      "category": "用户界面",
+      "description": "带相关性指示符的搜索结果显示",
       "steps": [
-        "Vector search indexes are optimized for speed",
-        "Query caching reduces redundant searches",
-        "Result ranking is accelerated with pre-computation",
-        "Database queries are optimized for performance",
-        "Response times meet interactive requirements"
+        "搜索结果显示相关性分数",
+        "突出显示教材引用和页码",
+        "内容预览帮助用户评估相关性",
+        "结果可以展开或收藏供以后使用",
+        "过滤选项按学科和年级优化结果"
       ],
       "priority": 2,
       "passes": false
     },
     {
-      "id": "HomeworkPal-S004",
-      "category": "performance",
-      "description": "Answer generation quality assessment and improvement",
+      "id": "RAG-U004",
+      "category": "用户界面",
+      "description": "带来源引用的生成答案显示",
       "steps": [
-        "Answer quality metrics are defined and measured",
-        "A/B testing compares different generation strategies",
-        "User feedback is collected and analyzed",
-        "Model parameters are optimized based on performance",
-        "Quality improvement is continuous and data-driven"
+        "生成的答案以学生友好的格式显示",
+        "教材来源引用页码",
+        "建议相关概念和例子",
+        "答案可以质量和有用性评分",
+        "建议进一步学习的后续问题"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "RAG-U005",
+      "category": "用户界面",
+      "description": "用户设置和配置界面",
+      "steps": [
+        "用户通过 Chainlit 界面访问设置",
+        "配置年级水平和学科偏好",
+        "设定学习目标和难度水平",
+        "调整通知和提醒偏好",
+        "设置跨会话保存和应用"
       ],
       "priority": 3,
       "passes": false
     },
     {
-      "id": "HomeworkPal-S005",
-      "category": "performance",
-      "description": "User behavior analysis for feature improvement",
+      "id": "RAG-S001",
+      "category": "性能监控",
+      "description": "系统性能监控和优化",
       "steps": [
-        "User interactions are tracked and analyzed",
-        "Usage patterns identify popular and unused features",
-        "User feedback guides feature prioritization",
-        "A/B testing validates interface improvements",
-        "User experience metrics drive continuous improvement"
+        "跟踪所有操作的响应时间",
+        "监控和优化资源使用",
+        "识别和解决瓶颈",
+        "记录和分析性能指标",
+        "测试和验证系统可扩展性"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "RAG-S002",
+      "category": "性能监控",
+      "description": "文档处理性能优化",
+      "steps": [
+        "为速度优化文档处理管道",
+        "大文档使用并行处理",
+        "缓存策略减少冗余处理",
+        "批处理提高吞吐量",
+        "最小化处理时间而不损失质量"
+      ],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "RAG-S003",
+      "category": "性能监控",
+      "description": "实时交互的搜索响应时间优化",
+      "steps": [
+        "为速度优化向量搜索索引",
+        "查询缓存减少冗余搜索",
+        "预计算加速结果排序",
+        "为性能优化数据库查询",
+        "响应时间满足交互要求"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "RAG-S004",
+      "category": "性能监控",
+      "description": "回答生成质量评估和改进",
+      "steps": [
+        "定义和测量答案质量指标",
+        "A/B 测试比较不同生成策略",
+        "收集和分析用户反馈",
+        "基于性能优化模型参数",
+        "质量改进是持续和数据驱动的"
+      ],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "RAG-S005",
+      "category": "性能监控",
+      "description": "功能改进的用户行为分析",
+      "steps": [
+        "跟踪和分析用户交互",
+        "使用模式识别流行和未使用的功能",
+        "用户反馈指导功能优先级",
+        "A/B 测试验证界面改进",
+        "用户体验指标驱动持续改进"
       ],
       "priority": 3,
       "passes": false
     }
   ],
   "metadata": {
-    "total_features": 35,
+    "total_features": 40,
     "categories": {
-      "document_processing": 5,
-      "retrieval": 5,
-      "generation": 5,
-      "vision": 3,
-      "mistake_notebook": 4,
-      "planner": 2,
-      "ui": 5,
-      "performance": 5
+      "基础设施": 2,
+      "RAG核心服务": 2,
+      "视觉推理服务": 2,
+      "前端界面": 3,
+      "错题本功能": 2,
+      "文档处理": 5,
+      "检索功能": 5,
+      "生成功能": 5,
+      "用户界面": 5,
+      "性能监控": 5
     },
     "priority_distribution": {
-      "priority_1": 14,
-      "priority_2": 15,
-      "priority_3": 6
+      "priority_1": 15,
+      "priority_2": 17,
+      "priority_3": 8
+    },
+    "development_phases": {
+      "Phase_1_基础设施": ["Task-1.1", "Task-1.2"],
+      "Phase_2_RAG核心": ["Task-2.1", "Task-2.2"],
+      "Phase_3_视觉推理": ["Task-3.1", "Task-3.2"],
+      "Phase_4_前端界面": ["Task-4.1", "Task-4.2", "Task-4.3"],
+      "Phase_5_错题本": ["Task-5.1", "Task-5.2"]
     }
   }
 }
