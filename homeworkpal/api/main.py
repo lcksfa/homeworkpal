@@ -14,7 +14,7 @@ from sqlalchemy import text
 
 # 导入数据库连接
 from homeworkpal.database.connection import init_database, test_connection, get_db
-from homeworkpal.database.models import TextbookKnowledge, HomeworkSession, MistakeRecord
+from homeworkpal.database.models import TextbookChunk, MistakeRecord
 
 # Load environment variables
 load_dotenv()

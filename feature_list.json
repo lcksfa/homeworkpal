@@ -40,13 +40,15 @@
       "description": "知识库入库脚本 (Ingestion Script)",
       "steps": [
         "编写脚本处理 data/textbooks/math_grade3_pep.md 等 Markdown 教材文件",
-        "使用 BAAI/bge-m3 模型通过 HuggingFaceEmbeddings 加载",
-        "使用 RecursiveCharacterTextSplitter 进行文本切片",
-        "使用 PGVector.from_documents 将向量化数据存入数据库",
-        "验证数据库 textbook_chunks 表中有数据，包含正确元数据"
+        "使用硅基流动 BAAI/bge-m3 模型生成1024维向量嵌入",
+        "使用 RecursiveCharacterTextSplitter 进行智能文本切片",
+        "将向量化数据批量存储到 textbook_chunks 数据库表",
+        "验证数据库存储结果，包含完整元数据和向量索引"
       ],
       "priority": 1,
-      "passes": false
+      "passes": true,
+      "completed_date": "2025-12-10T11:00:00Z",
+      "verification_note": "硅基流动API集成测试通过，BGE-M3向量模型工作正常"
     },
     {
       "id": "Task-2.2",
