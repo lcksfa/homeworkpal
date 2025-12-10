@@ -97,7 +97,27 @@ curl http://localhost:8001/health
 # Check vector index status
 SELECT * FROM pg_indexes WHERE tablename = 'textbook_chunks';
 
-# Update database structure (add new fields)
+# Database Migrations with Alembic
+# ==================================
+# Initialize Alembic (already done)
+alembic init alembic
+
+# Generate new migration based on model changes
+alembic revision --autogenerate -m "Description of changes"
+
+# Apply migrations to database
+alembic upgrade head
+
+# Downgrade to specific version
+alembic downgrade <revision_id>
+
+# Check current migration status
+alembic current
+
+# View migration history
+alembic history
+
+# Manual database update (legacy approach)
 python update_database.py
 
 # Check knowledge base content
@@ -131,9 +151,13 @@ homeworkpal/
 ├── feature_list.json        # End-to-end feature testing checklist
 ├── claude-progress.txt      # Multi-session development progress log
 ├── .env                     # Environment variables (API keys, database config)
+├── alembic/                 # Database migration management (Alembic)
+│   ├── versions/            # Migration files
+│   ├── env.py              # Alembic environment configuration
+│   └── alembic.ini         # Alembic configuration file
 ├── ingest_textbooks.py      # Knowledge base ingestion script
 ├── ingest_textbooks_simple.py # Simplified ingestion with mock data
-├── update_database.py       # Database structure update script
+├── update_database.py       # Database structure update script (legacy)
 ├── homeworkpal/             # Core Python package structure
 │   ├── __init__.py
 │   ├── core/               # Core business logic
@@ -152,6 +176,52 @@ homeworkpal/
 ├── data/                   # Data storage
 │   └── textbooks/         # PEP textbook materials (数学 3 上.pdf, 语文三上.pdf)
 └── uploads/               # File upload directory
+```
+
+## Alembic Database Migration Workflow
+
+### Migration Development Process
+```bash
+# 1. Make changes to SQLAlchemy models in homeworkpal/database/models.py
+# 2. Generate migration with autogenerate
+source .venv/bin/activate
+alembic revision --autogenerate -m "Descriptive migration message"
+
+# 3. Review generated migration in alembic/versions/
+# 4. Apply migration to database
+alembic upgrade head
+
+# 5. Test downgrade functionality
+alembic downgrade -1
+
+# 6. Apply upgrade again to ensure idempotency
+alembic upgrade head
+```
+
+### Migration Best Practices
+- **Always use `--autogenerate`** for schema changes
+- **Review migration files** before applying to production
+- **Test both upgrade and downgrade** paths
+- **Use descriptive commit messages** explaining the business reason
+- **Keep migrations atomic** - one logical change per migration
+- **Include pgvector extension handling** for vector-related changes
+
+### Database Schema Management
+- **Models**: Define in `homeworkpal/database/models.py`
+- **Migrations**: Auto-generated in `alembic/versions/`
+- **Environment**: Configured in `alembic/env.py` with project imports
+- **Connection**: PostgreSQL with pgvector extension support
+
+### Migration History and Status
+```bash
+# View all migrations
+alembic history
+
+# Check current version
+alembic current
+
+# Get detailed revision information
+alembic show <revision_id>
 ```
 
 ## Development Phases and Tasks
