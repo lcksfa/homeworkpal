@@ -36,11 +36,23 @@ async def on_chat_start():
         author="小栗子"
     ).send()
 
-    # Add action buttons
+    # Add action buttons (Chainlit 2.x compatible)
     actions = [
-        cl.Action(name="check_homework", value="check", label="📸 检查作业"),
-        cl.Action(name="create_planner", value="planner", label="📅 整理清单"),
-        cl.Action(name="view_mistakes", value="mistakes", label="📕 复习错题"),
+        cl.Action(
+            name="check_homework",
+            payload={"action": "check"},
+            label="📸 检查作业"
+        ),
+        cl.Action(
+            name="create_planner",
+            payload={"action": "planner"},
+            label="📅 整理清单"
+        ),
+        cl.Action(
+            name="view_mistakes",
+            payload={"action": "mistakes"},
+            label="📕 复习错题"
+        ),
     ]
 
     await cl.Message(
