@@ -15,7 +15,9 @@
         "验证 Python 虚拟环境和基础依赖包安装"
       ],
       "priority": 1,
-      "passes": false
+      "passes": true,
+      "completed_date": "2025-12-10T09:59:00Z",
+      "verification_script": "verify_environment.py"
     },
     {
       "id": "Task-1.2",
