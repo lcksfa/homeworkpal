@@ -20,9 +20,12 @@ class TextbookChunk(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     content = Column(Text, nullable=False, comment="教材内容片段")
     embedding = Column(Vector(1024), comment="向量嵌入 (BGE-M3 1024维)")
+    content_hash = Column(String(64), unique=True, comment="内容MD5哈希值，用于去重")
     metadata_json = Column(JSON, nullable=False, comment="元数据 (学科、年级、单元、页码等)")
     source_file = Column(String(255), comment="源文件路径")
     chunk_index = Column(Integer, comment="在源文档中的片段索引")
+    page_number = Column(Integer, comment="页码")
+    quality_score = Column(Float, default=1.0, comment="文本质量评分")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 

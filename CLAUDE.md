@@ -11,13 +11,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Technology Stack
 - **Backend**: PostgreSQL + pgvector + FastAPI + SQLAlchemy
 - **Frontend**: Chainlit (interactive web interface)
-- **AI Engine**: Qwen/DeepSeek (Chinese LLMs) + BGE-M3 embedding model
+- **AI Engine**: SiliconFlow API (BGE-M3 embedding + Qwen LLMs)
 - **Package Management**: uv (modern Python package manager)
 - **Database**: PostgreSQL 16 with pgvector extension (Docker-based)
+- **Document Processing**: PyMuPDF + unstructured for PDF parsing
 - **Development**: pytest + black + ruff
 
 ### System Components
 - **RAG Core**: Document processing, vector search, and knowledge retrieval from PEP textbooks
+- **Document Processing**: PDF parser with intelligent text splitting for educational content
+- **Vector Database**: 1024-dimensional embeddings with content deduplication
 - **Vision Service**: Image analysis for homework checking using Qwen-VL
 - **Mistake Notebook**: Automatic mistake recording and review system
 - **Interactive UI**: Chainlit-based chat interface with file upload capabilities
@@ -40,6 +43,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Load and vectorize documents from path
 ./init.sh --load-docs ./textbooks
+
+# Knowledge base ingestion (document processing + vectorization)
+python ingest_textbooks.py
+
+# Simplified ingestion with mock data (for testing)
+python ingest_textbooks_simple.py
+
+# Test document processing
+python test_pdf_direct.py
+
+# Test RAG search functionality
+python test_rag_search.py
 ```
 
 ### Development Workflow
@@ -80,7 +95,14 @@ psql -h localhost -U homeworkpal -d homeworkpal
 curl http://localhost:8001/health
 
 # Check vector index status
-SELECT * FROM pg_indexes WHERE tablename = 'textbook_knowledge';
+SELECT * FROM pg_indexes WHERE tablename = 'textbook_chunks';
+
+# Update database structure (add new fields)
+python update_database.py
+
+# Check knowledge base content
+SELECT COUNT(*), subject, grade FROM textbook_chunks
+GROUP BY subject, grade;
 ```
 
 ### Docker Management
@@ -109,19 +131,26 @@ homeworkpal/
 ├── feature_list.json        # End-to-end feature testing checklist
 ├── claude-progress.txt      # Multi-session development progress log
 ├── .env                     # Environment variables (API keys, database config)
-├── src/homeworkpal/         # Core Python package structure
+├── ingest_textbooks.py      # Knowledge base ingestion script
+├── ingest_textbooks_simple.py # Simplified ingestion with mock data
+├── update_database.py       # Database structure update script
+├── homeworkpal/             # Core Python package structure
 │   ├── __init__.py
 │   ├── core/               # Core business logic
 │   ├── database/           # Database operations and models
-│   ├── llm/               # LLM integrations (Qwen, DeepSeek)
+│   ├── llm/               # LLM integrations (SiliconFlow API)
+│   ├── document/          # PDF processing and text splitting
+│   │   ├── pdf_processor.py
+│   │   └── text_splitter.py
 │   ├── vision/            # Image processing and VLM integration
 │   └── utils/             # Utility functions
+├── playroom/               # 🚪 IMPORTANT: Create test files here!
 ├── docs/                   # Documentation and design specs
 │   ├── 作业搭子产品文档.md
 │   └── 开发任务分拆.md
 ├── tests/                  # Test suite
 ├── data/                   # Data storage
-│   └── textbooks/         # PEP textbook materials
+│   └── textbooks/         # PEP textbook materials (数学 3 上.pdf, 语文三上.pdf)
 └── uploads/               # File upload directory
 ```
 
@@ -134,8 +163,13 @@ The project follows a structured 5-phase development approach with 40 detailed f
 - **Task-1.2**: Database model design (SQLAlchemy)
 
 ### Phase 2: RAG Core (Tasks 2.1-2.2)
-- **Task-2.1**: Knowledge base ingestion script
-- **Task-2.2**: RAG service implementation
+- **Task-2.1**: ✅ Knowledge base ingestion script (COMPLETED)
+  - PDF document processing with PyMuPDF
+  - Intelligent text splitting for educational content
+  - Vector embeddings (1024-dim, BGE-M3)
+  - Content deduplication using MD5 hashes
+  - Database storage with rich metadata
+- **Task-2.2**: RAG service implementation (NEXT)
 
 ### Phase 3: Vision & Logic (Tasks 3.1-3.2)
 - **Task-3.1**: Vision service integration (Qwen-VL)
@@ -162,14 +196,19 @@ DB_NAME=homeworkpal
 DB_USER=homeworkpal
 DB_PASSWORD=password
 
-# LLM API Configuration (configure at least one)
+# SiliconFlow API Configuration (required for production)
+SILICONFLOW_API_KEY=your_siliconflow_api_key_here
+SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1
+
+# Legacy LLM API Configuration (optional)
 DASHSCOPE_API_KEY=your_dashscope_api_key_here    # Aliyun Qwen
 DEEPSEEK_API_KEY=your_deepseek_api_key_here      # DeepSeek
 OPENAI_API_KEY=your_openai_api_key_here          # OpenAI (optional)
 
 # Vector Database Configuration
-VECTOR_DIMENSION=1536
-EMBEDDING_MODEL=BAAI/bge-m3
+VECTOR_DIMENSION=1024
+EMBEDDING_MODEL=siliconflow/BAAI/bge-m3
+LLM_MODEL=siliconflow/Qwen/Qwen2.5-7B-Instruct
 
 # Chainlit Configuration
 CHAINLIT_HOST=0.0.0.0
@@ -202,6 +241,12 @@ CHAINLIT_PORT=8000
 - All public functions must include detailed docstrings
 - Maintain test coverage for all functionality modules
 - Use semantic commit messages (`feat:`, `fix:`, `docs:`)
+
+### 🚪 CRITICAL: Testing and Development Rules
+- **NEVER** create temporary test files in the project root
+- **ALWAYS** create test files in the `playroom/` directory for any temporary testing
+- **ALWAYS** clean up test files after use to maintain project organization
+- **NEVER** modify core production files for temporary experiments
 
 ## Testing and Validation
 
@@ -254,8 +299,9 @@ curl http://localhost:8000
 ### Common Issues
 1. **Port conflicts**: PostgreSQL 5432, frontend 8000, backend 8001
 2. **Vector database**: Ensure pgvector extension is enabled
-3. **API keys**: Verify DASHSCOPE_API_KEY and DEEPSEEK_API_KEY configuration
-4. **Environment**: Run `./init.sh` to verify complete setup
+3. **API keys**: Verify SILICONFLOW_API_KEY configuration (primary)
+4. **Document processing**: Ensure PyMuPDF is installed for PDF parsing
+5. **Environment**: Run `./init.sh` to verify complete setup
 
 ### Recovery Procedures
 ```bash
