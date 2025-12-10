@@ -30,7 +30,9 @@
         "运行初始化脚本自动在 PostgreSQL 中创建这两张表"
       ],
       "priority": 1,
-      "passes": false
+      "passes": true,
+      "completed_date": "2025-12-10T10:14:00Z",
+      "verification_script": "init_database.py"
     },
     {
       "id": "Task-2.1",
