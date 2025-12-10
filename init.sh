@@ -354,14 +354,14 @@ start_frontend() {
         # Try to start full frontend first, fallback to simple version
         if [[ -f "homeworkpal/frontend/app.py" ]]; then
             # Full frontend is available, start it
-            uv run chainlit run homeworkpal/frontend/app.py --host 0.0.0.0 --port 8000 > logs/frontend.log 2>&1 &
+            uv run chainlit run homeworkpal/frontend/app.py --host localhost --port 8000 > logs/frontend.log 2>&1 &
             FRONTEND_PID=$!
             echo $FRONTEND_PID > .frontend.pid
             success "Full frontend service started (PID: $FRONTEND_PID)"
         else
             # Fallback to simple frontend
             info "Full frontend not available, using simple frontend..."
-            uv run chainlit run homeworkpal/simple/app.py --host 0.0.0.0 --port 8000 > logs/frontend.log 2>&1 &
+            uv run chainlit run homeworkpal/simple/app.py --host localhost --port 8000 > logs/frontend.log 2>&1 &
             FRONTEND_PID=$!
             echo $FRONTEND_PID > .frontend.pid
             success "Simple frontend service started (PID: $FRONTEND_PID)"
