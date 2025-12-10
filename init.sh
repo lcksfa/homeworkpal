@@ -19,6 +19,7 @@ ENV_FILE=".env"
 LOAD_DOCS_PATH=""
 LOG_FILE="logs/init.log"
 HEALTH_CHECK_TIMEOUT=60
+STOP_SERVICES=false
 
 # Logging function
 log() {
@@ -62,6 +63,10 @@ parse_args() {
                 LOAD_DOCS_PATH="$2"
                 shift 2
                 ;;
+            --stop)
+                STOP_SERVICES=true
+                shift
+                ;;
             -h|--help)
                 show_help
                 exit 0
@@ -84,6 +89,7 @@ Options:
     --reset-vectordb      Reset vector database (WARNING: deletes all data)
     --env FILE           Load environment variables from FILE (default: .env)
     --load-docs PATH     Load and vectorize documents from PATH
+    --stop               Stop all running services
     -h, --help          Show this help message
 
 Requirements:
@@ -531,6 +537,14 @@ main() {
 
     # Parse command line arguments
     parse_args "$@"
+
+    # Handle stop request
+    if [[ "$STOP_SERVICES" == true ]]; then
+        info "Stopping all Homework Pal services..."
+        cleanup
+        success "All services stopped"
+        exit 0
+    fi
 
     # Check system requirements
     check_requirements
