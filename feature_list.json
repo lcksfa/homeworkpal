@@ -116,7 +116,25 @@
         "验证运行 chainlit run app/main.py 能打开浏览器并显示欢迎语"
       ],
       "priority": 1,
-      "passes": false
+      "passes": true,
+      "completed_date": "2025-12-11T19:45:00Z",
+      "verification_note": "Chainlit前端界面已成功搭建，包含欢迎语和功能按钮"
+    },
+    {
+      "id": "Task-4.1-QA",
+      "category": "前端界面",
+      "description": "前端问答功能集成 - RAG智能问答系统",
+      "steps": [
+        "在 on_message 函数中集成后端 /api/ask API 调用",
+        "实现学科自动检测功能（数学、语文、英语）",
+        "添加'正在思考'加载提示和错误处理机制",
+        "格式化答案显示，包含教材来源和鼓励性话语",
+        "验证用户可通过聊天框直接输入问题获得基于教材的答案"
+      ],
+      "priority": 1,
+      "passes": true,
+      "completed_date": "2025-12-11T19:48:00Z",
+      "verification_note": "用户可在前端直接问答，API集成完成，包含学科检测和错误处理"
     },
     {
       "id": "Task-4.2",
