@@ -73,6 +73,25 @@ def load_csv_data(csv_path: str) -> List[Dict[str, Any]]:
                 'source_file': row['source_file']
             }
 
+            # 添加内容分类信息（如果存在）
+            if 'content_category' in row and pd.notna(row['content_category']):
+                metadata['content_category'] = row['content_category']
+                # 更新content_type以匹配分类
+                if row['content_category'] == '课文':
+                    metadata['content_type'] = '课文主体'
+                elif row['content_category'] == '习作':
+                    metadata['content_type'] = '习作指导'
+                elif row['content_category'] == '交流':
+                    metadata['content_type'] = '口语交际'
+                elif row['content_category'] == '练习':
+                    metadata['content_type'] = '课后练习'
+                elif row['content_category'] == '日积月累':
+                    metadata['content_type'] = '日积月累'
+                elif row['content_category'] == '阅读':
+                    metadata['content_type'] = '阅读材料'
+                else:
+                    metadata['content_type'] = '其他内容'
+
             chunk = {
                 'content': row['content'],
                 'page_number': int(row['page_number']),
@@ -199,7 +218,7 @@ def main():
     print("=" * 50)
 
     # CSV文件路径
-    csv_path = "/Users/lizhao/workspace/hulus/homeworkpal/exports/语文三上_content_fixed.csv"
+    csv_path = "/Users/lizhao/workspace/hulus/homeworkpal/exports/语文三上_content_cleaned.csv"
 
     if not os.path.exists(csv_path):
         print_status(f"CSV文件不存在: {csv_path}", "❌")
