@@ -11,12 +11,12 @@ import logging
 from typing import List, Dict, Any, Optional
 import json
 
-from .base import EmbeddingModel, LLMClient
+from .base import BaseEmbeddingModel, BaseLLMClient
 
 logger = logging.getLogger(__name__)
 
 
-class SiliconFlowEmbeddingModel(EmbeddingModel):
+class SiliconFlowEmbeddingModel(BaseEmbeddingModel):
     """SiliconFlow BGE-M3嵌入模型客户端"""
 
     def __init__(self, api_key: str, base_url: str, model_name: str = "BAAI/bge-m3"):
@@ -31,7 +31,7 @@ class SiliconFlowEmbeddingModel(EmbeddingModel):
         self.api_key = api_key
         self.base_url = base_url.rstrip('/')
         self.model_name = model_name
-        self.embedding_url = f"{self.base_url}/v1/embeddings"
+        self.embedding_url = f"{self.base_url}/embeddings"
 
         # 设置请求头
         self.headers = {
@@ -62,39 +62,54 @@ class SiliconFlowEmbeddingModel(EmbeddingModel):
             向量嵌入列表的列表
         """
         try:
-            # 准备请求数据
-            payload = {
-                "model": self.model_name,
-                "input": texts,
-                "encoding_format": "float"
-            }
+            all_embeddings = []
+            batch_size = 10  # 减小批处理大小以避免413错误
 
-            logger.debug(f"发送嵌入请求: {len(texts)} 个文本")
+            for i in range(0, len(texts), batch_size):
+                batch_texts = texts[i:i + batch_size]
 
-            # 发送POST请求
-            response = requests.post(
-                self.embedding_url,
-                headers=self.headers,
-                json=payload,
-                timeout=30.0
-            )
+                # 准备请求数据
+                payload = {
+                    "model": self.model_name,
+                    "input": batch_texts,
+                    "encoding_format": "float"
+                }
 
-            response.raise_for_status()
-            result = response.json()
+                logger.debug(f"发送嵌入请求: {len(batch_texts)} 个文本 (批次 {i//batch_size + 1})")
 
-            # 提取嵌入向量
-            embeddings = [item['embedding'] for item in result['data']]
+                # 发送POST请求
+                response = requests.post(
+                    self.embedding_url,
+                    headers=self.headers,
+                    json=payload,
+                    timeout=30.0
+                )
 
-            logger.debug(f"成功生成 {len(embeddings)} 个嵌入向量，维度: {len(embeddings[0])}")
+                response.raise_for_status()
+                result = response.json()
 
-            return embeddings
+                # 提取嵌入向量
+                batch_embeddings = [item['embedding'] for item in result['data']]
+                all_embeddings.extend(batch_embeddings)
+
+            logger.debug(f"成功生成 {len(all_embeddings)} 个嵌入向量，维度: {len(all_embeddings[0])}")
+            return all_embeddings
 
         except Exception as e:
             logger.error(f"生成嵌入向量失败: {e}")
             raise
 
+    def get_embedding_dimension(self) -> int:
+        """
+        获取嵌入向量的维度
 
-class SiliconFlowLLMClient(LLMClient):
+        Returns:
+            向量维度
+        """
+        return 1024  # BGE-M3模型的嵌入维度
+
+
+class SiliconFlowLLMClient(BaseLLMClient):
     """SiliconFlow Qwen大语言模型客户端"""
 
     def __init__(self, api_key: str, base_url: str, model_name: str = "Qwen/Qwen2.5-7B-Instruct"):
@@ -109,7 +124,7 @@ class SiliconFlowLLMClient(LLMClient):
         self.api_key = api_key
         self.base_url = base_url.rstrip('/')
         self.model_name = model_name
-        self.chat_url = f"{self.base_url}/v1/chat/completions"
+        self.chat_url = f"{self.base_url}/chat/completions"
 
         # 设置请求头
         self.headers = {
@@ -121,7 +136,8 @@ class SiliconFlowLLMClient(LLMClient):
                       messages: List[Dict[str, str]],
                       max_tokens: int = 1000,
                       temperature: float = 0.7,
-                      stream: bool = False) -> Dict[str, Any]:
+                      stream: bool = False,
+                      **kwargs) -> Dict[str, Any]:
         """
         调用聊天补全API
 
@@ -181,6 +197,20 @@ class SiliconFlowLLMClient(LLMClient):
             logger.error(f"提取回复文本失败: {e}")
             return ""
 
+    def get_model_info(self) -> Dict[str, Any]:
+        """
+        获取模型信息
+
+        Returns:
+            模型信息字典
+        """
+        return {
+            "model_name": self.model_name,
+            "provider": "SiliconFlow",
+            "api_url": self.chat_url,
+            "type": "chat_completion"
+        }
+
 
 class SiliconFlowClient:
     """SiliconFlow API统一客户端"""
@@ -205,7 +235,7 @@ class SiliconFlowClient:
         self.embedding_model = SiliconFlowEmbeddingModel(
             api_key=self.api_key,
             base_url=self.base_url,
-            model_name=os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
+            model_name="BAAI/bge-m3"  # 暂时硬编码，避免环境变量问题
         )
 
         self.llm_client = SiliconFlowLLMClient(

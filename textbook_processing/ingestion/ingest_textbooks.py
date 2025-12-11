@@ -288,7 +288,8 @@ def verify_ingestion():
             # 查询示例记录
             sample_chunk = session.query(TextbookChunk).first()
             print(f"  📝 示例内容长度: {len(sample_chunk.content)} 字符")
-            print(f"  🔢 向量维度: {len(sample_chunk.embedding) if sample_chunk.embedding else 0}")
+            embedding_dim = len(sample_chunk.embedding) if hasattr(sample_chunk.embedding, '__len__') else 0
+            print(f"  🔢 向量维度: {embedding_dim}")
             print(f"  📄 源文件: {sample_chunk.source_file}")
             print(f"  📋 元数据: {json.dumps(sample_chunk.metadata_json, ensure_ascii=False, indent=2)}")
 

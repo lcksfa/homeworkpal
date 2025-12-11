@@ -30,11 +30,16 @@ class BaseLLMClient(ABC):
     """大语言模型客户端基类"""
 
     @abstractmethod
-    def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> str:
+    def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> Dict[str, Any]:
         """聊天补全"""
         pass
 
     @abstractmethod
     def get_model_info(self) -> Dict[str, Any]:
         """获取模型信息"""
+        pass
+
+    @abstractmethod
+    def get_response_text(self, response: Dict[str, Any]) -> str:
+        """从响应中提取回复文本"""
         pass
