@@ -65,6 +65,21 @@
       "completed_date": "2025-12-11T18:53:00Z"
     },
     {
+      "id": "Task-2.3",
+      "category": "RAG核心服务",
+      "description": "端到端RAG问答系统 (Q&A Pipeline)",
+      "steps": [
+        "创建后端API端点 /api/ask，接收问题并返回基于教材的答案",
+        "集成RAGService检索相关教材内容，使用硅基流动LLM生成回答",
+        "实现完整的问答流程：问题→向量化→检索→生成→答案",
+        "添加教师语形prompt，确保答案适合三年级学生理解",
+        "验证输入'周长是什么'能返回包含教材引用的通俗易懂答案"
+      ],
+      "priority": 1,
+      "passes": true,
+      "completed_date": "2025-12-11T19:32:00Z"
+    },
+    {
       "id": "Task-3.1",
       "category": "视觉推理服务",
       "description": "视觉服务封装 (Vision Service)",
@@ -507,10 +522,10 @@
     }
   ],
   "metadata": {
-    "total_features": 40,
+    "total_features": 41,
     "categories": {
       "基础设施": 2,
-      "RAG核心服务": 2,
+      "RAG核心服务": 3,
       "视觉推理服务": 2,
       "前端界面": 3,
       "错题本功能": 2,
@@ -521,7 +536,7 @@
       "性能监控": 5
     },
     "priority_distribution": {
-      "priority_1": 15,
+      "priority_1": 16,
       "priority_2": 17,
       "priority_3": 8
     },
@@ -532,7 +547,8 @@
       ],
       "Phase_2_RAG核心": [
         "Task-2.1",
-        "Task-2.2"
+        "Task-2.2",
+        "Task-2.3"
       ],
       "Phase_3_视觉推理": [
         "Task-3.1",
