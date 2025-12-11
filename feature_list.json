@@ -61,7 +61,8 @@
         "优化检索结果排序和相似度计算"
       ],
       "priority": 1,
-      "passes": false
+      "passes": true,
+      "completed_date": "2025-12-11T18:53:00Z"
     },
     {
       "id": "Task-3.1",
@@ -525,11 +526,27 @@
       "priority_3": 8
     },
     "development_phases": {
-      "Phase_1_基础设施": ["Task-1.1", "Task-1.2"],
-      "Phase_2_RAG核心": ["Task-2.1", "Task-2.2"],
-      "Phase_3_视觉推理": ["Task-3.1", "Task-3.2"],
-      "Phase_4_前端界面": ["Task-4.1", "Task-4.2", "Task-4.3"],
-      "Phase_5_错题本": ["Task-5.1", "Task-5.2"]
+      "Phase_1_基础设施": [
+        "Task-1.1",
+        "Task-1.2"
+      ],
+      "Phase_2_RAG核心": [
+        "Task-2.1",
+        "Task-2.2"
+      ],
+      "Phase_3_视觉推理": [
+        "Task-3.1",
+        "Task-3.2"
+      ],
+      "Phase_4_前端界面": [
+        "Task-4.1",
+        "Task-4.2",
+        "Task-4.3"
+      ],
+      "Phase_5_错题本": [
+        "Task-5.1",
+        "Task-5.2"
+      ]
     }
   }
 }
